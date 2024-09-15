@@ -5,7 +5,7 @@ use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult}
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-
+use crate::state::{State,Status, STATUS};
 /*
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:voting-system";
@@ -14,12 +14,27 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
-    _deps: DepsMut,
+    deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
-    _msg: InstantiateMsg,
+    info: MessageInfo,
+    msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
-    unimplemented!()
+    let state = State {
+        title: "Che pasta ti piace?".to_string(),
+        description: "Dicci la tua".to_string(),
+        option: vec![
+            "Norma".to_string(),
+            "Carbonara".to_string(),
+            "Gricia".to_string(),
+        ],
+        voter: vec![],
+        // risultati: vec![],
+        admin: info.sender.clone(), // L'amministratore è chi crea il contratto
+        expires: msg.expiration,
+        status: Status::Open
+    };
+    STATUS.save(deps.storage, &state)?;
+    Ok(Response::default())
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
