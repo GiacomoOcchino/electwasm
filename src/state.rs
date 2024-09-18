@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Empty, StdResult, Storage, Timestamp};
+use cosmwasm_std::{Addr, Empty, StdResult, Storage, Timestamp,BlockInfo};
 
 use cw_storage_plus::{Item, Map};
 use cw_utils::{Duration, Expiration};
@@ -13,7 +13,6 @@ pub enum Status {
     /// proposal expired
     Closed = 2,
 }
-
 
 #[cw_serde]
 pub struct Votes {
@@ -29,15 +28,15 @@ impl Votes {
         self.a + self.b + self.c + self.d
     }
 
-    // /// create it with a yes vote for this much
-    // pub fn yes(init_weight: u64) -> Self {
-    //     Votes {
-    //         a: init_weight,
-    //         b: 0,
-    //         c: 0,
-    //         d: 0,
-    //     }
-    // }
+    /// create it with a yes vote for this much
+    pub fn start() -> Self {
+        Votes {
+            a: 0,
+            b: 0,
+            c: 0,
+            d: 0,
+        }
+    }
 
     pub fn add_vote(&mut self, vote: Vote, weight: u64) {
         match vote {
@@ -78,11 +77,12 @@ pub const STATUS: Item<State> = Item::new("status");
 
 // MSG
 
-pub const BALLOTS: Map<(u64, &Addr), Ballot> = Map::new("votes");
-pub const PROPOSALS: Map<u64, Proposal> = Map::new("proposals");
+// pub const BALLOTS: Map< &Addr, Ballot> = Map::new("votes");
+pub const BALLOTS: Map<&Addr, Vote> = Map::new("votes");
 pub const ADMINS: Map<&Addr, Timestamp> = Map::new("admins");
-// multiple-item maps
 pub const VOTERS: Map<&Addr, u64> = Map::new("voters");
+// pub const PROPOSALS: Map<u64, Proposal> = Map::new("proposals");
+// multiple-item maps
 // pub const DONATION_DENOM: Item<String> = Item::new("donation_denom");
 
 // #[cw_serde]
@@ -101,10 +101,29 @@ pub struct State {
     pub description: String,
     pub option: Vec<String>,
     pub expires: Expiration,
-    pub voter: Vec<Addr>,
+    pub votes: Votes,
+    // pub voter: Vec<Addr>,
     pub status: Status,
     pub admin: Addr,
     // pub start_height: u64,
     // pub msgs: Vec<CosmosMsg<Empty>>,
     // pub deposit: Option<DepositInfo>,
+}
+impl State {
+    pub fn current_status(&self, block: &BlockInfo) -> Status {
+        let mut status = self.status;
+
+        
+        if status == Status::Open  || self.expires.is_expired(block) {
+            status = Status::Closed;
+        }
+
+        status
+    }
+
+    /// update_status sets the status of the proposal to current_status.
+    /// (designed for handler logic)
+    pub fn update_status(&mut self, block: &BlockInfo) {
+        self.status = self.current_status(block);
+    }
 }

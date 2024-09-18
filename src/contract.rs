@@ -1,11 +1,11 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response, StdResult};
 // use cw2::set_contract_version;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::{State,Status, STATUS};
+use crate::state::{Ballot, State, Status, Vote, Votes, BALLOTS, STATUS};
 /*
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:voting-system";
@@ -27,11 +27,11 @@ pub fn instantiate(
             "Carbonara".to_string(),
             "Gricia".to_string(),
         ],
-        voter: vec![],
+        votes: Votes::start(),
         // risultati: vec![],
         admin: info.sender.clone(), // L'amministratore è chi crea il contratto
         expires: msg.expiration,
-        status: Status::Open
+        status: Status::Open,
     };
     STATUS.save(deps.storage, &state)?;
     Ok(Response::default())
@@ -39,12 +39,41 @@ pub fn instantiate(
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
-    _deps: DepsMut,
-    _env: Env,
-    _info: MessageInfo,
-    _msg: ExecuteMsg,
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    unimplemented!()
+    match msg {
+        ExecuteMsg::Vote { vote } => execute_vote(deps, env, info, vote),
+    }
+}
+
+pub fn execute_vote(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    vote: Vote,
+) -> Result<Response<Empty>, ContractError> {
+    let mut state = STATUS.load(deps.storage)?;
+    // Check if proposal is closed
+    if ![Status::Open].contains(&state.status) {
+        return Err(ContractError::Expired {});
+    }
+    // Check if voter already vote
+
+    BALLOTS.update(deps.storage, &info.sender, |bal| match bal {
+        Some(_) => Err(ContractError::AlreadyVoted {}),
+        None => Ok(vote.clone()),
+    })?;
+    state.votes.add_vote(vote, 1);
+    state.update_status(&env.block);
+    STATUS.save(deps.storage, &state)?;
+
+    Ok(Response::new()
+        .add_attribute("action", "vote")
+        .add_attribute("sender", info.sender)
+        .add_attribute("status", format!("{:?}", state.status)))
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
