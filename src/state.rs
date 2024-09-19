@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, Empty, StdResult, Storage, Timestamp,BlockInfo};
+use cosmwasm_std::{Addr, BlockInfo, Empty, StdResult, Storage, Timestamp};
 
 use cw_storage_plus::{Item, Map};
 use cw_utils::{Duration, Expiration};
@@ -66,13 +66,13 @@ pub struct Ballot {
     pub weight: u64,
     pub vote: Vote,
 }
-#[cw_serde]
-pub struct Config {
-    // pub threshold: Threshold,
-    pub total_weight: u64,
-    pub max_voting_period: Duration,
-}
-pub const CONFIG: Item<Config> = Item::new("config");
+// #[cw_serde]
+// pub struct Config {
+//     // pub threshold: Threshold,
+//     pub total_weight: u64,
+//     pub max_voting_period: Duration,
+// }
+// pub const CONFIG: Item<Config> = Item::new("config");
 pub const STATUS: Item<State> = Item::new("status");
 
 // MSG
@@ -80,7 +80,7 @@ pub const STATUS: Item<State> = Item::new("status");
 // pub const BALLOTS: Map< &Addr, Ballot> = Map::new("votes");
 pub const BALLOTS: Map<&Addr, Vote> = Map::new("votes");
 pub const ADMINS: Map<&Addr, Timestamp> = Map::new("admins");
-pub const VOTERS: Map<&Addr, u64> = Map::new("voters");
+// pub const VOTERS: Map<&Addr, u64> = Map::new("voters");
 // pub const PROPOSALS: Map<u64, Proposal> = Map::new("proposals");
 // multiple-item maps
 // pub const DONATION_DENOM: Item<String> = Item::new("donation_denom");
@@ -113,8 +113,7 @@ impl State {
     pub fn current_status(&self, block: &BlockInfo) -> Status {
         let mut status = self.status;
 
-        
-        if status == Status::Open  || self.expires.is_expired(block) {
+        if status == Status::Open && self.expires.is_expired(block) {
             status = Status::Closed;
         }
 
