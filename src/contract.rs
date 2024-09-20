@@ -112,80 +112,59 @@ fn query_proposal_response(deps: Deps) -> StdResult<Votes> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env, message_info};
+    use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
     use cosmwasm_std::{Addr, Timestamp};
     use cosmwasm_std::{DepsMut, MessageInfo};
     use cw_multi_test::{App, ContractWrapper, Executor};
     use cw_utils::Expiration;
-    
 
     use crate::msg::InstantiateMsg;
-    // #[track_caller]
-    // fn proper_initialization(
-    //     deps: DepsMut,
-    //     info: MessageInfo,
-    //     title: String,
-    //     description: String,
-    //     option: Vec<String>,
-    //     expiration: Expiration,
-    // ) {
-    //     let mut app = App::default();
-
-    //     let owner = app.api().addr_make("owner").to_string();
-    //     let voter1 = app.api().addr_make("voter0001").to_string();
-    //     let voter2 = app.api().addr_make("voter0002").to_string();
-    //     let voter3 = app.api().addr_make("voter0003").to_string();
-    //     let voter4 = app.api().addr_make("voter0004").to_string();
-    //     let voter5 = app.api().addr_make("voter0005").to_string();
-    //     let voter6 = app.api().addr_make("voter0006").to_string();
-    //     let title = "Che pasta ti piace?".to_string();
-    //     let description = "Dicci la tua".to_string();
-    //     let option = vec![
-    //         "Norma".to_string(),
-    //         "Carbonara".to_string(),
-    //         "Gricia".to_string(),
-    //     ];
-    //     let instantiate_msg = InstantiateMsg {
-    //         title,
-    //         description,
-    //         option,
-    //         expiration,
-    //     };
-    //    let resp= instantiate(deps, mock_env(), info, instantiate_msg)
-    // }
+    use chrono::{DateTime, Local, Utc};
 
     #[test]
-fn test_instantiate_with_valid_message() {
-    let mut deps = mock_dependencies();
-    let ts = Timestamp::from_nanos(1_000_000_202);
-    let msg = InstantiateMsg {
-        title: "Che pasta ti piace?".to_string(),
-        description: "Dicci la tua preferenza!".to_string(),
-        option: vec!["Norma".to_string(), "Carbonara".to_string(), "Gricia".to_string()],
-        expiration: Expiration::AtTime(ts.plus_days(2)), // Expires in 2 days
-    };
-    let app = App::default();
+    fn test_instantiate_with_valid_message() {
+        let mut deps = mock_dependencies();
+        // let now: DateTime<Local> = Local::now();
+        // let timestamp_in_nanos = now.timestamp_nanos_opt();
+        // let mut env = mock_env();
+        // env.block.time = Timestamp::from_nanos(1_000_000_000); // Mock timestamp
 
-    let owner = app.api().addr_make("owner");
+        let env = mock_env();
+        println!("Ora: {}", env.block.time);
+        let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
+                // let ts = Timestamp::from_nanos(mock_env());
+        let msg = InstantiateMsg {
+            title: "Che pasta ti piace?".to_string(),
+            description: "Dicci la tua preferenza!".to_string(),
+            option: vec![
+                "Norma".to_string(),
+                "Carbonara".to_string(),
+                "Gricia".to_string(),
+            ],
+            expiration: Expiration::AtTime( ts.plus_days(2)), // Expires in 2 days
+        };
+        let app = App::default();
 
-    let info = message_info(&owner,&[]);
+        let owner = app.api().addr_make("owner");
 
-    let response = instantiate(deps.as_mut(), mock_env(), info, msg.clone())
-        .expect("failed to instantiate");
+        let info = message_info(&owner, &[]);
 
-    // Asserto per verificare la risposta 
-    assert_eq!(response, Response::default());
+        let response = instantiate(deps.as_mut(), mock_env(), info, msg.clone())
+            .expect("failed to instantiate");
 
-    // Asserto per verificare lo stato salvato
-    let state = STATUS.load(&deps.storage).expect("failed to load state");
-    assert_eq!(state.title, msg.title);
-    assert_eq!(state.description, msg.description);
-    assert_eq!(state.option, msg.option);
-    assert_eq!(Votes::start(), state.votes); // Verifica che i voti siano inizializzati correttamente
-    // assert_eq!(state.admin, info.sender);
-    assert_eq!(state.expires, msg.expiration);
-    assert_eq!(state.status, Status::Open);
-}
+        // Asserto per verificare la risposta
+        assert_eq!(response, Response::default());
+
+        // Asserto per verificare lo stato salvato
+        let state = STATUS.load(&deps.storage).expect("failed to load state");
+        assert_eq!(state.title, msg.title);
+        assert_eq!(state.description, msg.description);
+        assert_eq!(state.option, msg.option);
+        assert_eq!(Votes::start(), state.votes); // Verifica che i voti siano inizializzati correttamente
+                                                 // assert_eq!(state.admin, info.sender);
+        assert_eq!(state.expires, msg.expiration);
+        assert_eq!(state.status, Status::Open);
+    }
     // #[test]
     // fn test_instantiate() {
     //     let mut app = App::default();
@@ -213,4 +192,47 @@ fn test_instantiate_with_valid_message() {
     //     };
     //     instantiate(deps, mock_env(), info, instantiate_msg)
     // }
+    #[test]
+    fn test_vote_works() {
+        let app = App::default();
+
+        let owner = app.api().addr_make("owner");
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        println!("Ora: {}", env.block.time);
+        let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
+        println!("Timestamp attuale in nanosecondi: {}", ts);
+        println!("Scade a : {}", Expiration::AtTime(ts.plus_days(2)));
+        let info = message_info(&owner, &[]);
+        let msg = InstantiateMsg {
+            title: "Che pasta ti piace?".to_string(),
+            description: "Dicci la tua preferenza!".to_string(),
+            option: vec![
+                "Norma".to_string(),
+                "Carbonara".to_string(),
+                "Gricia".to_string(),
+            ],
+            expiration: Expiration::AtTime(ts.plus_days(2)), // Expires in 2 days
+        };
+
+
+        let start = instantiate(deps.as_mut(), mock_env(), info.clone(), msg.clone())
+            .expect("failed to instantiate");
+
+        let a_vote = ExecuteMsg::Vote { vote: Vote::A };
+        let b_vote = ExecuteMsg::Vote { vote: Vote::B };
+        let res = execute(deps.as_mut(), mock_env(), info, a_vote.clone()).unwrap();
+        let info = message_info(&owner, &[]);
+       
+        let err = execute(deps.as_mut(), mock_env(), info.clone(), b_vote.clone()).unwrap_err();
+        assert_eq!(err, ContractError::AlreadyVoted {});
+       // Verify
+       assert_eq!(
+        res,
+        Response::new()
+            .add_attribute("action", "vote")
+            .add_attribute("sender", owner)
+            .add_attribute("status", "Open")
+    );
+    }
 }

@@ -44,6 +44,7 @@ schemars = "0.8.21"
 serde = { version = "1.0.197", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.63" }
 cw-utils = "2.0.0"
+chrono ="0.4.38"
 
 [dev-dependencies]
 cw-multi-test = "2.1.1"
