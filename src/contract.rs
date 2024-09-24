@@ -1,13 +1,15 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    to_json_binary, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response, StdResult,
+    to_json_binary, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Order, Response, StdError,
+    StdResult,
 };
 // use cw2::set_contract_version;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, VoteInfo, VoteResponse};
-use crate::state::{Ballot, State, Status, Vote, Votes, BALLOTS, STATUS};
+use crate::state::{State, Status, Vote, Votes, BALLOTS, STATUS};
+
 /*
 // version info for migration info
 const CONTRACT_NAME: &str = "crates.io:voting-system";
@@ -86,17 +88,50 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::Vote { voter } => to_json_binary(&query_vote(deps, voter)?),
         QueryMsg::Total {} => to_json_binary(&query_proposal_response(deps)?),
+        QueryMsg::GetAllVotes {} => {
+            let mut all_votes: Vec<VoteInfo> = vec![];
+            BALLOTS
+                .range(deps.storage, None, None, Order::Ascending)
+                .for_each(|item| {
+                    let (voter, vote) = item.unwrap();
+                    all_votes.push(VoteInfo {
+                        voter: voter.to_string(),
+                        vote,
+                    });
+                });
+            to_json_binary(&all_votes)
+        }
     }
 }
 
+// fn query_vote(deps: Deps, voter: String) -> StdResult<VoteResponse> {
+//     let voter = deps.api.addr_validate(&voter)?;
+//     let ballot = BALLOTS.may_load(deps.storage, &voter)?;
+
+//     let vote = ballot.map(|b| VoteInfo {
+//         voter: voter.into(),
+//         vote: b,
+//     });
+//     Ok(VoteResponse { vote })
+// }
 fn query_vote(deps: Deps, voter: String) -> StdResult<VoteResponse> {
     let voter = deps.api.addr_validate(&voter)?;
     let ballot = BALLOTS.may_load(deps.storage, &voter)?;
-    let vote = ballot.map(|b| VoteInfo {
-        voter: voter.into(),
-        vote: b,
-    });
-    Ok(VoteResponse { vote })
+
+    let vote_info = match ballot {
+        Some(b) => VoteInfo {
+            voter: voter.into(),
+            vote: b,
+        },
+        None => {
+            // Gestisci il caso in cui il voto non è stato trovato
+            return Err(StdError::generic_err("Vote not found"));
+        }
+    };
+
+    Ok(VoteResponse {
+        vote: Some(vote_info),
+    })
 }
 
 fn query_proposal_response(deps: Deps) -> StdResult<Votes> {
@@ -114,25 +149,18 @@ mod tests {
     use super::*;
     use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
     use cosmwasm_std::{Addr, Timestamp};
-    use cosmwasm_std::{DepsMut, MessageInfo};
-    use cw_multi_test::{App, ContractWrapper, Executor};
+    use cw_multi_test::App;
     use cw_utils::Expiration;
 
     use crate::msg::InstantiateMsg;
-    use chrono::{DateTime, Local, Utc};
 
     #[test]
     fn test_instantiate_with_valid_message() {
         let mut deps = mock_dependencies();
-        // let now: DateTime<Local> = Local::now();
-        // let timestamp_in_nanos = now.timestamp_nanos_opt();
-        // let mut env = mock_env();
-        // env.block.time = Timestamp::from_nanos(1_000_000_000); // Mock timestamp
 
         let env = mock_env();
         println!("Ora: {}", env.block.time);
         let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
-                // let ts = Timestamp::from_nanos(mock_env());
         let msg = InstantiateMsg {
             title: "Che pasta ti piace?".to_string(),
             description: "Dicci la tua preferenza!".to_string(),
@@ -141,7 +169,7 @@ mod tests {
                 "Carbonara".to_string(),
                 "Gricia".to_string(),
             ],
-            expiration: Expiration::AtTime( ts.plus_days(2)), // Expires in 2 days
+            expiration: Expiration::AtTime(ts.plus_days(2)), // Expires in 2 days
         };
         let app = App::default();
 
@@ -165,44 +193,22 @@ mod tests {
         assert_eq!(state.expires, msg.expiration);
         assert_eq!(state.status, Status::Open);
     }
-    // #[test]
-    // fn test_instantiate() {
-    //     let mut app = App::default();
-    //     let code = ContractWrapper::new(execute, instantiate, query);
 
-    //     let owner = app.api().addr_make("owner").to_string();
-    //     let voter1 = app.api().addr_make("voter0001").to_string();
-    //     let voter2 = app.api().addr_make("voter0002").to_string();
-    //     let voter3 = app.api().addr_make("voter0003").to_string();
-    //     let voter4 = app.api().addr_make("voter0004").to_string();
-    //     let voter5 = app.api().addr_make("voter0005").to_string();
-    //     let voter6 = app.api().addr_make("voter0006").to_string();
-    //     let title = "Che pasta ti piace?".to_string();
-    //     let description = "Dicci la tua".to_string();
-    //     let option = vec![
-    //         "Norma".to_string(),
-    //         "Carbonara".to_string(),
-    //         "Gricia".to_string(),
-    //     ];
-    //     let instantiate_msg = InstantiateMsg {
-    //         title,
-    //         description,
-    //         option,
-    //         expiration,
-    //     };
-    //     instantiate(deps, mock_env(), info, instantiate_msg)
-    // }
     #[test]
     fn test_vote_works() {
         let app = App::default();
 
         let owner = app.api().addr_make("owner");
+        let voter1: Addr = app.api().addr_make("voter1");
+        let voter2 = app.api().addr_make("voter2");
         let mut deps = mock_dependencies();
+
         let env = mock_env();
         println!("Ora: {}", env.block.time);
         let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
         println!("Timestamp attuale in nanosecondi: {}", ts);
         println!("Scade a : {}", Expiration::AtTime(ts.plus_days(2)));
+
         let info = message_info(&owner, &[]);
         let msg = InstantiateMsg {
             title: "Che pasta ti piace?".to_string(),
@@ -215,24 +221,55 @@ mod tests {
             expiration: Expiration::AtTime(ts.plus_days(2)), // Expires in 2 days
         };
 
-
         let start = instantiate(deps.as_mut(), mock_env(), info.clone(), msg.clone())
             .expect("failed to instantiate");
 
         let a_vote = ExecuteMsg::Vote { vote: Vote::A };
+
         let b_vote = ExecuteMsg::Vote { vote: Vote::B };
         let res = execute(deps.as_mut(), mock_env(), info, a_vote.clone()).unwrap();
+
         let info = message_info(&owner, &[]);
-       
+
         let err = execute(deps.as_mut(), mock_env(), info.clone(), b_vote.clone()).unwrap_err();
         assert_eq!(err, ContractError::AlreadyVoted {});
-       // Verify
-       assert_eq!(
-        res,
-        Response::new()
-            .add_attribute("action", "vote")
-            .add_attribute("sender", owner)
-            .add_attribute("status", "Open")
-    );
+        // Verify
+        assert_eq!(
+            res,
+            Response::new()
+                .add_attribute("action", "vote")
+                .add_attribute("sender", owner.clone())
+                .add_attribute("status", "Open")
+        );
+        let info = message_info(&voter1, &[]);
+
+        let vote1 = execute(deps.as_mut(), mock_env(), info, b_vote.clone()).unwrap();
+        let vote = QueryMsg::Vote {
+            voter: voter1.to_string(),
+        };
+        // println!("Il voto1 è: {:?}", vote1);
+        println!("Il voto è: {:?}", vote);
+
+        for item in BALLOTS.range(&deps.storage, None, None, Order::Ascending) {
+            match item {
+                Ok((voter, vote)) => {
+                    println!("Voter: {:?}, Vote: {:?}", voter, vote);
+                }
+                Err(err) => {
+                    // Gestisci l'errore
+                    eprintln!("Errore durante l'iterazione: {}", err);
+                }
+            }
+        }
+        let res = QueryMsg::Vote {
+            voter: owner.to_string(),
+        };
+        let query_result = query(deps.as_ref(), env, res);
+        println!("Il voto dell'utente è: {:?}", query_result);
+
+        let vote_info = query_vote(deps.as_ref(), owner.to_string());
+        println!("Il voto dell'utente è: {:?}", vote_info.unwrap().vote);
+        let allvote = query_proposal_response(deps.as_ref());
+        println!("Il voto dell'utente è: {:?}", allvote);
     }
 }

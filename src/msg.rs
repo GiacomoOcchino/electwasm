@@ -1,5 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cw_utils::{Duration, Expiration};
+use cw_utils:: Expiration;
 use crate::state::{Vote, Votes};
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -39,6 +39,8 @@ pub enum QueryMsg {
     Vote { voter: String }, 
     #[returns(Votes)]
     Total { }, 
+    #[returns(VoteListResponse)]
+    GetAllVotes{}
 }
 
 
