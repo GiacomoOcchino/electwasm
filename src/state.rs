@@ -50,14 +50,9 @@ impl Votes {
 
 #[cw_serde]
 pub enum Vote {
-    /// Marks support for the proposal.
     A,
-    /// Marks opposition to the proposal.
     B,
-    /// Marks participation but does not count towards the ratio of support / opposed
     C,
-    /// Veto is generally to be treated as a No vote. Some implementations may allow certain
-    /// voters to be able to Veto, or them to be counted stronger than No in some way.
     D,
 }
 // It contains the vote info
@@ -66,34 +61,13 @@ pub struct Ballot {
     pub weight: u64,
     pub vote: Vote,
 }
-// #[cw_serde]
-// pub struct Config {
-//     // pub threshold: Threshold,
-//     pub total_weight: u64,
-//     pub max_voting_period: Duration,
-// }
-// pub const CONFIG: Item<Config> = Item::new("config");
+
 pub const STATUS: Item<State> = Item::new("status");
 
-// MSG
-
-// pub const BALLOTS: Map< &Addr, Ballot> = Map::new("votes");
 pub const BALLOTS: Map<&Addr, Vote> = Map::new("votes");
 pub const ADMINS: Map<&Addr, Timestamp> = Map::new("admins");
-// pub const VOTERS: Map<&Addr, u64> = Map::new("voters");
-// pub const PROPOSALS: Map<u64, Proposal> = Map::new("proposals");
-// multiple-item maps
-// pub const DONATION_DENOM: Item<String> = Item::new("donation_denom");
+pub const VOTERS: Map<&Addr, bool> = Map::new("voters");
 
-// #[cw_serde]
-// pub struct State {
-//     // pub proposal: Vec<Proposal>,
-//     pub votes: Vec<Vote>,
-//     // pub results: Vec<Risultato>,
-//     pub admin: Addr,
-//     pub expires: Expiration,
-
-// }
 
 #[cw_serde]
 pub struct State {
@@ -102,12 +76,8 @@ pub struct State {
     pub option: Vec<String>,
     pub expires: Expiration,
     pub votes: Votes,
-    // pub voter: Vec<Addr>,
     pub status: Status,
     pub admin: Addr,
-    // pub start_height: u64,
-    // pub msgs: Vec<CosmosMsg<Empty>>,
-    // pub deposit: Option<DepositInfo>,
 }
 impl State {
     pub fn current_status(&self, block: &BlockInfo) -> Status {

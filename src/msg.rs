@@ -14,6 +14,11 @@ pub enum ExecuteMsg {
     Vote {
         vote: Vote,
     },
+    UpdateVoters {
+        ask: String,
+        add: Vec<String>,
+    },
+    
 }
 
 #[cw_serde]
