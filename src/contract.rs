@@ -161,7 +161,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
     }
 }
-/* 
+/*
 fn query_vote(deps: Deps, voter: String) -> StdResult<VoteResponse> {
     let voter = deps.api.addr_validate(&voter)?;
     let ballot = BALLOTS.may_load(deps.storage, &voter)?;
@@ -177,7 +177,7 @@ fn query_vote(deps: Deps, voter: String) -> StdResult<VoteResponse> {
     let voter = deps.api.addr_validate(&voter)?;
     let ballot = BALLOTS.may_load(deps.storage, &voter)?;
 
-    let vote_info = match ballot {
+    let vote = match ballot {
         Some(b) => VoteInfo {
             voter: voter.into(),
             vote: b,
@@ -188,9 +188,7 @@ fn query_vote(deps: Deps, voter: String) -> StdResult<VoteResponse> {
         }
     };
 
-    Ok(VoteResponse {
-        vote: Some(vote_info),
-    })
+    Ok(VoteResponse { vote })
 }
 
 fn query_proposal_response(deps: Deps) -> StdResult<Votes> {
@@ -207,7 +205,7 @@ fn query_proposal_response(deps: Deps) -> StdResult<Votes> {
 mod tests {
     use super::*;
     use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
-    use cosmwasm_std::{Addr, Timestamp};
+    use cosmwasm_std::{from_json, Addr, Timestamp};
     use cw_multi_test::App;
     use cw_utils::Expiration;
 
@@ -300,6 +298,21 @@ mod tests {
                 .add_attribute("status", "Open")
         );
         let info = message_info(&voter1, &[]);
+        let ask_1 = ExecuteMsg::UpdateVoters {
+            ask: info.sender.to_string(),
+            add: [].to_vec(),
+        };
+
+        let response = execute(deps.as_mut(), mock_env(), info.clone(), ask_1.clone()).unwrap();
+
+        let info = message_info(&voter1, &[]);
+
+        let info_owner = message_info(&owner, &[]);
+        let new_add_1 = ExecuteMsg::UpdateVoters {
+            ask: "".to_string(),
+            add: vec![voter1.to_string()],
+        };
+        let response = execute(deps.as_mut(), mock_env(), info_owner, new_add_1.clone()).unwrap();
 
         let vote1 = execute(deps.as_mut(), mock_env(), info, b_vote.clone()).unwrap();
         let vote = QueryMsg::Vote {
@@ -322,13 +335,23 @@ mod tests {
         let res = QueryMsg::Vote {
             voter: owner.to_string(),
         };
-        let query_result = query(deps.as_ref(), env, res);
-        println!("Il voto dell'utente è: {:?}", query_result);
+        let query_result: VoteResponse =
+            from_json(query(deps.as_ref(), env.clone(), res).unwrap()).unwrap();
+        println!("QueryMsg::Vote: {:?}", query_result);
 
         let vote_info = query_vote(deps.as_ref(), owner.to_string());
-        println!("Il voto dell'utente è: {:?}", vote_info.unwrap().vote);
+        println!("query_vote: {:?}", vote_info.unwrap().vote);
+        let res = QueryMsg::Total {};
+        let query_result: Votes =
+            from_json(query(deps.as_ref(), env.clone(), res).unwrap()).unwrap();
         let allvote = query_proposal_response(deps.as_ref());
-        println!("Il voto dell'utente è: {:?}", allvote);
+        println!("QueryMsg::Total: {:?}", query_result);
+        println!("Query diretta: {:?}", allvote.unwrap());
+
+        let res = QueryMsg::GetAllVotes {};
+        let query_result: Vec<VoteInfo> =
+            from_json(query(deps.as_ref(), env, res).unwrap()).unwrap();
+        println!("QueryMsg::Total: {:?}", query_result);
     }
 
     #[test]
@@ -393,7 +416,7 @@ mod tests {
         let info_owner = message_info(&owner, &[]);
         let new_add_1 = ExecuteMsg::UpdateVoters {
             ask: "".to_string(),
-            add: vec![info.sender.to_string()],
+            add: vec![voter1.to_string()],
         };
         let response = execute(deps.as_mut(), mock_env(), info_owner, new_add_1.clone()).unwrap();
 

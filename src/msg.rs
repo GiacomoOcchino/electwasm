@@ -33,7 +33,7 @@ pub struct VoteListResponse {
 }
 #[cw_serde]
 pub struct VoteResponse {
-    pub vote: Option<VoteInfo>,
+    pub vote: VoteInfo,
 }
 
 

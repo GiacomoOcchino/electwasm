@@ -1,8 +1,8 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, BlockInfo, Empty, StdResult, Storage, Timestamp};
+use cosmwasm_std::{Addr, BlockInfo, Timestamp};
 
 use cw_storage_plus::{Item, Map};
-use cw_utils::{Duration, Expiration};
+use cw_utils::Expiration;
 
 #[cw_serde]
 #[derive(Copy)]
