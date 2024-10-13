@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, BlockInfo, Timestamp};
 
@@ -68,9 +70,8 @@ pub const BALLOTS: Map<&Addr, Vote> = Map::new("votes");
 pub const ADMINS: Map<&Addr, Timestamp> = Map::new("admins");
 pub const VOTERS: Map<&Addr, bool> = Map::new("voters");
 
-
 #[cw_serde]
-pub struct State {
+pub struct Proposal {
     pub title: String,
     pub description: String,
     pub option: Vec<String>,
@@ -79,7 +80,7 @@ pub struct State {
     pub status: Status,
     pub admin: Addr,
 }
-impl State {
+impl Proposal {
     pub fn current_status(&self, block: &BlockInfo) -> Status {
         let mut status = self.status;
 
@@ -95,4 +96,12 @@ impl State {
     pub fn update_status(&mut self, block: &BlockInfo) {
         self.status = self.current_status(block);
     }
+}
+
+pub const PROPOSALS: Map<u64, Proposal> = Map::new("proposals");
+
+#[cw_serde]
+pub struct State {
+    count: u64,
+    proposals: BTreeMap<u64, Proposal>,
 }
