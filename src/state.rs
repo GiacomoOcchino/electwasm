@@ -9,7 +9,7 @@ use cw_utils::Expiration;
 #[cw_serde]
 #[derive(Copy)]
 #[repr(u8)]
-pub enum Status {
+pub enum ProposalStatus {
     /// proposal was created, voting is started
     Open = 1,
     /// proposal expired
@@ -77,15 +77,16 @@ pub struct Proposal {
     pub option: Vec<String>,
     pub expires: Expiration,
     pub votes: Votes,
-    pub status: Status,
+    pub status: ProposalStatus,
     pub admin: Addr,
+    // pub fee: Uint128,
 }
 impl Proposal {
-    pub fn current_status(&self, block: &BlockInfo) -> Status {
+    pub fn current_status(&self, block: &BlockInfo) -> ProposalStatus {
         let mut status = self.status;
 
-        if status == Status::Open && self.expires.is_expired(block) {
-            status = Status::Closed;
+        if status == ProposalStatus::Open && self.expires.is_expired(block) {
+            status = ProposalStatus::Closed;
         }
 
         status
