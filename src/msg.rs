@@ -59,7 +59,7 @@ pub enum QueryMsg {
     #[returns(VoteResponse)]
     Vote { voter: String, proposal_id: u64 },
     #[returns(Votes)]
-    Total {},
+    Total { proposal_id: u64 },
     #[returns(VoteListResponse)]
     GetAllVotes {},
 }
