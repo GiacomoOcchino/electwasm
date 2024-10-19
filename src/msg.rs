@@ -57,7 +57,7 @@ pub struct VoteResponse {
 #[derive(QueryResponses)]
 pub enum QueryMsg {
     #[returns(VoteResponse)]
-    Vote { voter: String },
+    Vote { voter: String, proposal_id: u64 },
     #[returns(Votes)]
     Total {},
     #[returns(VoteListResponse)]

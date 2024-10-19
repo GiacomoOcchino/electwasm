@@ -243,7 +243,9 @@ pub fn execute_vote(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Vote { voter } => to_json_binary(&query_vote(deps, voter)?),
+        QueryMsg::Vote { voter, proposal_id } => {
+            to_json_binary(&query_vote(deps, voter, proposal_id)?)
+        }
         QueryMsg::Total {} => to_json_binary(&query_proposal_response(deps)?),
         QueryMsg::GetAllVotes {} => {
             let mut all_votes: Vec<VoteInfo> = vec![];
@@ -272,9 +274,9 @@ fn query_vote(deps: Deps, voter: String) -> StdResult<VoteResponse> {
     Ok(VoteResponse { vote })
 }
 */
-fn query_vote(deps: Deps, voter: String) -> StdResult<VoteResponse> {
+fn query_vote(deps: Deps, voter: String, proposal_id: u64) -> StdResult<VoteResponse> {
     let voter = deps.api.addr_validate(&voter)?;
-    let ballot = BALLOTS.may_load(deps.storage, &voter)?;
+    let ballot = BALLOTS.may_load(deps.storage, (proposal_id,&voter))?;
 
     let vote = match ballot {
         Some(b) => VoteInfo {
