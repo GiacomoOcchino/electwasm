@@ -22,10 +22,11 @@ pub enum ExecuteMsg {
     // Vote {
     //     vote: Vote,
     // },
-    // UpdateVoters {
-    //     ask: String,
-    //     add: Vec<String>,
-    // },
+    UpdateVoters {
+        ask: String,
+        add: Vec<String>,
+        proposal_id: u64,
+    },
     Propose {
         title: String,
         description: String,

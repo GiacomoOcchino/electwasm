@@ -68,7 +68,7 @@ pub const STATUS: Item<State> = Item::new("status");
 
 pub const BALLOTS: Map<&Addr, Vote> = Map::new("votes");
 pub const ADMINS: Map<&Addr, Timestamp> = Map::new("admins");
-pub const VOTERS: Map<&Addr, bool> = Map::new("voters");
+pub const VOTERS: Map<(u64,&Addr), bool> = Map::new("voters");
 
 #[cw_serde]
 pub struct Proposal {

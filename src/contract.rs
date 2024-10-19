@@ -28,8 +28,8 @@ pub fn instantiate(
     STATUS.save(deps.storage, &state)?;
 
     //TODO Check
-   /* Imposta la fee iniziale, ad esempio prelevandola dai fondi del creatore
-     let fee = info.funds.get(&denom).cloned().unwrap_or_default();*/
+    /* Imposta la fee iniziale, ad esempio prelevandola dai fondi del creatore
+    let fee = info.funds.get(&denom).cloned().unwrap_or_default();*/
     Ok(Response::new().add_attribute("message", "contract initialized"))
 }
 //OLD
@@ -70,7 +70,11 @@ pub fn execute(
             msgs,
         } => execute_propose(deps, env, info, title, description, option, expires, msgs),
         // ExecuteMsg::Vote { vote } => execute_vote(deps, env, info, vote),
-        // ExecuteMsg::UpdateVoters { add, ask } => execute_update_voters(deps, env, info, add, ask),
+        ExecuteMsg::UpdateVoters {
+            add,
+            ask,
+            proposal_id,
+        } => execute_update_voters(deps, env, info, add, ask, proposal_id),
     }
 }
 
@@ -121,11 +125,12 @@ pub fn execute_propose(
 }
 
 pub fn execute_update_voters(
-    mut deps: DepsMut,
+    deps: DepsMut,
     env: Env,
     info: MessageInfo,
     add: Vec<String>,
     ask: String,
+    proposal_id: u64,
 ) -> Result<Response, ContractError> {
     let attributes = vec![
         attr("action", "update_voters"),
@@ -134,8 +139,15 @@ pub fn execute_update_voters(
         attr("sender", &info.sender),
     ];
 
+    //Check if propose exist
+    let mut prop = PROPOSALS.load(deps.storage, proposal_id)?;
+    //Check if is OPEN
+    if ![ProposalStatus::Open].contains(&prop.status) {
+        return Err(ContractError::NotOpen {});
+    }
+
     // make the local update
-    let update = update_voters(deps, info.sender, add, ask)?;
+    let update = update_voters(deps, info.sender, proposal_id, add, ask)?;
     // call all registered hooks
 
     Ok(Response::new().add_attributes(attributes))
@@ -145,6 +157,7 @@ pub fn execute_update_voters(
 pub fn update_voters(
     deps: DepsMut,
     sender: Addr,
+    proposal_id: u64,
     to_add: Vec<String>,
     to_ask: String,
 ) -> Result<Response, ContractError> {
@@ -155,20 +168,26 @@ pub fn update_voters(
     if !to_ask.is_empty() {
         let insert_addr = deps.api.addr_validate(&to_ask)?;
 
-        VOTERS.save(deps.storage, &insert_addr, &false)?;
+        VOTERS.save(deps.storage, (proposal_id, &insert_addr), &false)?;
     }
     if !to_add.is_empty() {
-        let state = STATUS.load(deps.storage)?;
-        if state.admin == sender {
+        //Reference to proposal
+        let prop = PROPOSALS.load(deps.storage, proposal_id)?;
+
+        if prop.proposer == sender {
             for voter in to_add {
                 let update_addr = deps.api.addr_validate(&voter)?;
-                VOTERS.update(deps.storage, &update_addr, |old| -> StdResult<_> {
-                    Ok(match old {
-                        Some(true) => true,  // Se è già true, lo lasciamo così
-                        Some(false) => true, // Se è false, lo cambiamo in true
-                        None => true,        // Se non esiste, lo inseriamo con valore true
-                    })
-                })?;
+                VOTERS.update(
+                    deps.storage,
+                    (proposal_id, &update_addr),
+                    |old| -> StdResult<_> {
+                        Ok(match old {
+                            Some(true) => true,  // Se è già true, lo lasciamo così
+                            Some(false) => true, // Se è false, lo cambiamo in true
+                            None => true,        // Se non esiste, lo inseriamo con valore true
+                        })
+                    },
+                )?;
             }
         } else {
             return Err(ContractError::Unauthorized {});
@@ -186,7 +205,7 @@ pub fn execute_vote(
 ) -> Result<Response<Empty>, ContractError> {
     let mut state = STATUS.load(deps.storage)?;
     // Check if proposal is closed
-    if ![Status::Open].contains(&state.status) {
+    if ![ProposalStatus::Open].contains(&state.status) {
         return Err(ContractError::Expired {});
     }
     let voter = VOTERS.may_load(deps.storage, &info.sender)?;
