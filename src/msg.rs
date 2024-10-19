@@ -19,9 +19,10 @@ pub struct InstantiateMsg {
 
 #[cw_serde]
 pub enum ExecuteMsg {
-    // Vote {
-    //     vote: Vote,
-    // },
+    Vote {
+        vote: Vote,
+        proposal_id: u64,
+    },
     UpdateVoters {
         ask: String,
         add: Vec<String>,

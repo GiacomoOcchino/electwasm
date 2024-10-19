@@ -69,7 +69,7 @@ pub fn execute(
             expires,
             msgs,
         } => execute_propose(deps, env, info, title, description, option, expires, msgs),
-        // ExecuteMsg::Vote { vote } => execute_vote(deps, env, info, vote),
+        ExecuteMsg::Vote { vote, proposal_id } => execute_vote(deps, env, info, vote, proposal_id),
         ExecuteMsg::UpdateVoters {
             add,
             ask,
@@ -89,7 +89,7 @@ pub fn execute_propose(
     msgs: Vec<CosmosMsg>,
     // we ignore earliest
 ) -> Result<Response<Empty>, ContractError> {
-    let status = STATUS.load(deps.storage)?;
+    /*let status = STATUS.load(deps.storage)?;*/
     // create a proposal
     let mut prop = Proposal {
         title,
@@ -134,20 +134,21 @@ pub fn execute_update_voters(
 ) -> Result<Response, ContractError> {
     let attributes = vec![
         attr("action", "update_voters"),
+        attr("proposal", proposal_id.to_string()),
         attr("added", add.len().to_string()),
         attr("ask to join", ask.clone()),
         attr("sender", &info.sender),
     ];
 
     //Check if propose exist
-    let mut prop = PROPOSALS.load(deps.storage, proposal_id)?;
+    let prop = PROPOSALS.load(deps.storage, proposal_id)?;
     //Check if is OPEN
     if ![ProposalStatus::Open].contains(&prop.status) {
         return Err(ContractError::NotOpen {});
     }
 
     // make the local update
-    let update = update_voters(deps, info.sender, proposal_id, add, ask)?;
+    update_voters(deps, info.sender, proposal_id, add, ask)?;
     // call all registered hooks
 
     Ok(Response::new().add_attributes(attributes))
@@ -173,7 +174,6 @@ pub fn update_voters(
     if !to_add.is_empty() {
         //Reference to proposal
         let prop = PROPOSALS.load(deps.storage, proposal_id)?;
-
         if prop.proposer == sender {
             for voter in to_add {
                 let update_addr = deps.api.addr_validate(&voter)?;
@@ -202,28 +202,31 @@ pub fn execute_vote(
     env: Env,
     info: MessageInfo,
     vote: Vote,
+    proposal_id: u64,
 ) -> Result<Response<Empty>, ContractError> {
-    let mut state = STATUS.load(deps.storage)?;
-    // Check if proposal is closed
-    if ![ProposalStatus::Open].contains(&state.status) {
+    //Check if propose exist
+    let mut prop = PROPOSALS.load(deps.storage, proposal_id)?;
+    //Check if is OPEN
+    if ![ProposalStatus::Open].contains(&prop.status) {
         return Err(ContractError::Expired {});
     }
-    let voter = VOTERS.may_load(deps.storage, &info.sender)?;
+    let voter = VOTERS.may_load(deps.storage, (proposal_id, &info.sender))?;
     match voter {
         Some(true) => {
             // L'utente può votare
-            BALLOTS.update(deps.storage, &info.sender, |bal| match bal {
+            BALLOTS.update(deps.storage, (proposal_id, &info.sender), |bal| match bal {
                 Some(_) => Err(ContractError::AlreadyVoted {}),
                 None => Ok(vote.clone()),
             })?;
-            state.votes.add_vote(vote, 1);
-            state.update_status(&env.block);
-            STATUS.save(deps.storage, &state)?;
+            prop.votes.add_vote(vote, 1);
+            prop.update_status(&env.block);
+            PROPOSALS.save(deps.storage, proposal_id, &prop)?;
 
             Ok(Response::new()
                 .add_attribute("action", "vote")
                 .add_attribute("sender", info.sender)
-                .add_attribute("status", format!("{:?}", state.status)))
+                .add_attribute("proposal_id", proposal_id.to_string())
+                .add_attribute("status", format!("{:?}", prop.status)))
         }
         Some(false) => {
             // L'utente non può votare

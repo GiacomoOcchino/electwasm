@@ -66,7 +66,7 @@ pub struct Ballot {
 
 pub const STATUS: Item<State> = Item::new("status");
 
-pub const BALLOTS: Map<&Addr, Vote> = Map::new("votes");
+pub const BALLOTS: Map<(u64,&Addr), Vote> = Map::new("votes");
 pub const ADMINS: Map<&Addr, Timestamp> = Map::new("admins");
 pub const VOTERS: Map<(u64,&Addr), bool> = Map::new("voters");
 
