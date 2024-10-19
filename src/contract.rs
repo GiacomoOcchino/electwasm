@@ -1,16 +1,39 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, to_json_binary, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Order, Response,
-    StdError, StdResult,
+    attr, to_json_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo, Order,
+    Response, StdError, StdResult,
 };
+use cw_utils::Expiration;
+use std::collections::BTreeMap;
 // use cw2::set_contract_version;
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, VoteInfo, VoteResponse};
-use crate::state::{State, Status, Vote, Votes, BALLOTS, STATUS, VOTERS};
+use crate::state::{
+    next_id, Proposal, ProposalStatus, State, Vote, Votes, BALLOTS, PROPOSALS, STATUS, VOTERS,
+};
 
 #[cfg_attr(not(feature = "library"), entry_point)]
+pub fn instantiate(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    msg: InstantiateMsg,
+) -> Result<Response, ContractError> {
+    let state = State {
+        count: msg.count,
+        proposals: msg.proposals,
+    };
+    STATUS.save(deps.storage, &state)?;
+
+    //TODO Check
+   /* Imposta la fee iniziale, ad esempio prelevandola dai fondi del creatore
+     let fee = info.funds.get(&denom).cloned().unwrap_or_default();*/
+    Ok(Response::new().add_attribute("message", "contract initialized"))
+}
+//OLD
+/*#[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
@@ -30,7 +53,7 @@ pub fn instantiate(
     VOTERS.save(deps.storage, &info.sender.clone(), &true)?;
     Ok(Response::default())
 }
-
+*/
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
@@ -39,9 +62,62 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::Vote { vote } => execute_vote(deps, env, info, vote),
-        ExecuteMsg::UpdateVoters { add, ask } => execute_update_voters(deps, env, info, add, ask),
+        ExecuteMsg::Propose {
+            title,
+            description,
+            option,
+            expires,
+            msgs,
+        } => execute_propose(deps, env, info, title, description, option, expires, msgs),
+        // ExecuteMsg::Vote { vote } => execute_vote(deps, env, info, vote),
+        // ExecuteMsg::UpdateVoters { add, ask } => execute_update_voters(deps, env, info, add, ask),
     }
+}
+
+pub fn execute_propose(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    title: String,
+    description: String,
+    option: Vec<String>,
+    expires: Expiration,
+    msgs: Vec<CosmosMsg>,
+    // we ignore earliest
+) -> Result<Response<Empty>, ContractError> {
+    let status = STATUS.load(deps.storage)?;
+    // create a proposal
+    let mut prop = Proposal {
+        title,
+        description,
+        expires,
+        option,
+        msgs,
+        status: ProposalStatus::Open,
+        votes: Votes::start(),
+        proposer: info.sender.clone(),
+        // fee: None,
+    };
+    prop.update_status(&env.block); //TODO Check
+    let id = next_id(deps.storage)?;
+    PROPOSALS.save(deps.storage, id, &prop)?;
+
+    /*
+    // add the first yes vote from voter
+    let ballot = Ballot {
+        weight: vote_power,
+        vote: Vote::Yes,
+    };
+
+
+    BALLOTS.save(deps.storage, (id, &info.sender), &ballot)?;
+    */
+    // add the first voter to the proposal?
+    Ok(Response::new()
+        .add_attribute("action", "propose")
+        .add_attribute("sender", info.sender)
+        .add_attribute("proposal_id", id.to_string())
+        .add_attribute("status", format!("{:?}", prop.status)))
 }
 
 pub fn execute_update_voters(
@@ -57,6 +133,7 @@ pub fn execute_update_voters(
         attr("ask to join", ask.clone()),
         attr("sender", &info.sender),
     ];
+
     // make the local update
     let update = update_voters(deps, info.sender, add, ask)?;
     // call all registered hooks

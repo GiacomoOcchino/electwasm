@@ -1,7 +1,7 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap};
 
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, BlockInfo, Timestamp};
+use cosmwasm_std::{Addr, BlockInfo,Empty, CosmosMsg, StdResult, Storage, Timestamp};
 
 use cw_storage_plus::{Item, Map};
 use cw_utils::Expiration;
@@ -76,6 +76,7 @@ pub struct Proposal {
     pub description: String,
     pub option: Vec<String>,
     pub expires: Expiration,
+    pub msgs: Vec<CosmosMsg<Empty>>,
     pub votes: Votes,
     pub status: ProposalStatus,
     pub proposer: Addr,
@@ -105,4 +106,13 @@ pub const PROPOSALS: Map<u64, Proposal> = Map::new("proposals");
 pub struct State {
    pub count: u64,
    pub proposals: BTreeMap<u64, Proposal>,
+}
+
+
+pub const PROPOSAL_COUNT: Item<u64> = Item::new("proposal_count");
+
+pub fn next_id(store: &mut dyn Storage) -> StdResult<u64> {
+    let id: u64 = PROPOSAL_COUNT.may_load(store)?.unwrap_or_default() + 1;
+    PROPOSAL_COUNT.save(store, &id)?;
+    Ok(id)
 }
