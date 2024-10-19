@@ -78,7 +78,7 @@ pub struct Proposal {
     pub expires: Expiration,
     pub votes: Votes,
     pub status: ProposalStatus,
-    pub admin: Addr,
+    pub proposer: Addr,
     // pub fee: Uint128,
 }
 impl Proposal {
@@ -103,6 +103,6 @@ pub const PROPOSALS: Map<u64, Proposal> = Map::new("proposals");
 
 #[cw_serde]
 pub struct State {
-    count: u64,
-    proposals: BTreeMap<u64, Proposal>,
+   pub count: u64,
+   pub proposals: BTreeMap<u64, Proposal>,
 }
