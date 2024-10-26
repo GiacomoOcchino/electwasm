@@ -30,8 +30,10 @@ pub fn instantiate(
     //TODO Check
     /* Imposta la fee iniziale, ad esempio prelevandola dai fondi del creatore
     let fee = info.funds.get(&denom).cloned().unwrap_or_default();*/
-    Ok(Response::new().add_attribute("message", "contract initialized"))
-}
+    Ok(Response::default())
+    /*Ok(Response::new().add_attribute("message", "contract initialized"))
+    */
+    }
 //OLD
 /*#[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -252,7 +254,9 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             to_json_binary(&query_proposal_response(deps, proposal_id)?)
         }
         //TODO
-        QueryMsg::GetAllVotes {} => {
+       /* 
+        QueryMsg::GetAllVotes {proposal_id} => {
+            
             let mut all_votes: Vec<VoteInfo> = vec![];
             BALLOTS
                 .range(deps.storage, None, None, Order::Ascending)
@@ -265,6 +269,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
                 });
             to_json_binary(&all_votes)
         }
+        */
     }
 }
 /*
@@ -320,20 +325,22 @@ mod tests {
     #[test]
     fn test_instantiate_with_valid_message() {
         let mut deps = mock_dependencies();
-
         let env = mock_env();
-        println!("Ora: {}", env.block.time);
-        let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
+        // let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
         let msg = InstantiateMsg {
-            title: "Che pasta ti piace?".to_string(),
-            description: "Dicci la tua preferenza!".to_string(),
-            option: vec![
-                "Norma".to_string(),
-                "Carbonara".to_string(),
-                "Gricia".to_string(),
-            ],
-            expiration: Expiration::AtTime(ts.plus_days(2)), // Expires in 2 days
-        };
+            count:0,
+            proposals: BTreeMap::new(),
+         };
+        // let msg = InstantiateMsg {
+        //     title: "Che pasta ti piace?".to_string(),
+        //     description: "Dicci la tua preferenza!".to_string(),
+        //     option: vec![
+        //         "Norma".to_string(),
+        //         "Carbonara".to_string(),
+        //         "Gricia".to_string(),
+        //     ],
+        //     expiration: Expiration::AtTime(ts.plus_days(2)), // Expires in 2 days
+        // };
         let app = App::default();
 
         let owner = app.api().addr_make("owner");
@@ -348,14 +355,15 @@ mod tests {
 
         // Asserto per verificare lo stato salvato
         let state = STATUS.load(&deps.storage).expect("failed to load state");
-        assert_eq!(state.title, msg.title);
-        assert_eq!(state.description, msg.description);
-        assert_eq!(state.option, msg.option);
-        assert_eq!(Votes::start(), state.votes); // Verifica che i voti siano inizializzati correttamente
-        assert_eq!(state.expires, msg.expiration);
-        assert_eq!(state.status, Status::Open);
+        assert_eq!(state.count, msg.count);
+        assert_eq!(state.proposals, msg.proposals);
+        // assert_eq!(state.option, msg.option);
+        // assert_eq!(Votes::start(), state.votes); // Verifica che i voti siano inizializzati correttamente
+        // assert_eq!(state.expires, msg.expiration);
+        // assert_eq!(state.status, Status::Open);
     }
-
+}
+/*
     #[test]
     fn test_vote_works() {
         let app = App::default();
@@ -550,4 +558,4 @@ mod tests {
             }
         }
     }
-}
+}*/

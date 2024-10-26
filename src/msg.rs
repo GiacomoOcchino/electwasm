@@ -60,8 +60,8 @@ pub enum QueryMsg {
     Vote { voter: String, proposal_id: u64 },
     #[returns(Votes)]
     Total { proposal_id: u64 },
-    #[returns(VoteListResponse)]
-    GetAllVotes {},
+    // #[returns(VoteListResponse)]
+    // GetAllVotes { proposal_id: u64 },
 }
 
 #[cw_serde]
