@@ -1,11 +1,14 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
+use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
 use cosmwasm_std::{
-    attr, to_json_binary, Addr, Binary, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo, Order,
-    Response, StdError, StdResult,
+    attr, coin, to_json_binary, Addr, BankMsg, Binary, CosmosMsg, Deps, DepsMut, Empty, Env,
+    MessageInfo, Order, Response, StdError, StdResult, Timestamp,
 };
+use cw_multi_test::App;
 use cw_utils::Expiration;
 use std::collections::BTreeMap;
+use tests::setup_test_case;
 // use cw2::set_contract_version;
 
 use crate::error::ContractError;
@@ -32,8 +35,8 @@ pub fn instantiate(
     let fee = info.funds.get(&denom).cloned().unwrap_or_default();*/
     Ok(Response::default())
     /*Ok(Response::new().add_attribute("message", "contract initialized"))
-    */
-    }
+     */
+}
 //OLD
 /*#[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -252,24 +255,23 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         //DONE
         QueryMsg::Total { proposal_id } => {
             to_json_binary(&query_proposal_response(deps, proposal_id)?)
-        }
-        //TODO
-       /* 
-        QueryMsg::GetAllVotes {proposal_id} => {
-            
-            let mut all_votes: Vec<VoteInfo> = vec![];
-            BALLOTS
-                .range(deps.storage, None, None, Order::Ascending)
-                .for_each(|item| {
-                    let (voter, vote) = item.unwrap();
-                    all_votes.push(VoteInfo {
-                        voter: voter.to_string(),
-                        vote,
-                    });
-                });
-            to_json_binary(&all_votes)
-        }
-        */
+        } //TODO
+          /*
+          QueryMsg::GetAllVotes {proposal_id} => {
+
+              let mut all_votes: Vec<VoteInfo> = vec![];
+              BALLOTS
+                  .range(deps.storage, None, None, Order::Ascending)
+                  .for_each(|item| {
+                      let (voter, vote) = item.unwrap();
+                      all_votes.push(VoteInfo {
+                          voter: voter.to_string(),
+                          vote,
+                      });
+                  });
+              to_json_binary(&all_votes)
+          }
+          */
     }
 }
 /*
@@ -303,7 +305,7 @@ fn query_vote(deps: Deps, voter: String, proposal_id: u64) -> StdResult<VoteResp
 }
 
 fn query_proposal_response(deps: Deps, proposal_id: u64) -> StdResult<Votes> {
-    let prop = PROPOSALS.load(deps.storage,proposal_id)?;
+    let prop = PROPOSALS.load(deps.storage, proposal_id)?;
     let votes = prop.votes;
     Ok(Votes {
         a: votes.a,
@@ -322,25 +324,28 @@ mod tests {
 
     use crate::msg::InstantiateMsg;
 
+    // this will set up the instantiation for other tests
+    #[track_caller]
+    pub fn setup_test_case(
+        deps: DepsMut,
+        info: MessageInfo,
+        count: u64,
+        proposals: BTreeMap<u64, Proposal>,
+    ) -> Result<Response<Empty>, ContractError> {
+        // Instantiate a contract with voters
+        let instantiate_msg = InstantiateMsg { count, proposals };
+        instantiate(deps, mock_env(), info, instantiate_msg)
+    }
+
     #[test]
     fn test_instantiate_with_valid_message() {
         let mut deps = mock_dependencies();
         let env = mock_env();
         // let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
         let msg = InstantiateMsg {
-            count:0,
+            count: 0,
             proposals: BTreeMap::new(),
-         };
-        // let msg = InstantiateMsg {
-        //     title: "Che pasta ti piace?".to_string(),
-        //     description: "Dicci la tua preferenza!".to_string(),
-        //     option: vec![
-        //         "Norma".to_string(),
-        //         "Carbonara".to_string(),
-        //         "Gricia".to_string(),
-        //     ],
-        //     expiration: Expiration::AtTime(ts.plus_days(2)), // Expires in 2 days
-        // };
+        };
         let app = App::default();
 
         let owner = app.api().addr_make("owner");
@@ -363,110 +368,160 @@ mod tests {
         // assert_eq!(state.status, Status::Open);
     }
 }
+
+#[test]
+fn test_create_proposal() {
+    let mut deps = mock_dependencies();
+    let app = App::default();
+    let owner = app.api().addr_make("owner");
+    let voter1: Addr = app.api().addr_make("voter1");
+    let count: u64 = 0;
+    let proposals: BTreeMap<u64, Proposal> = BTreeMap::new();
+    let info = message_info(&owner, &[]);
+    setup_test_case(deps.as_mut(), info, count, proposals).unwrap();
+    let bank_msg = BankMsg::Send {
+        to_address: owner.into(),
+        amount: vec![coin(1, "ucosm")],
+    };
+    let msgs = vec![CosmosMsg::Bank(bank_msg)];
+    let env = mock_env();
+    let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
+
+    let proposal = ExecuteMsg::Propose {
+        title: "Che pasta ti piace?".to_string(),
+        description: "Dicci la tua preferenza!".to_string(),
+        option: vec![
+            "Norma".to_string(),
+            "Carbonara".to_string(),
+            "Gricia".to_string(),
+        ],
+        expires: Expiration::AtTime(ts.plus_days(2)),
+        msgs: msgs,
+    };
+    let info = message_info(&voter1, &[]);
+
+    let res = execute(deps.as_mut(), mock_env(), info, proposal.clone()).unwrap();
+    // Verify
+    assert_eq!(
+        res,
+        Response::new()
+            .add_attribute("action", "propose")
+            .add_attribute("sender", voter1)
+            .add_attribute("proposal_id", 1.to_string())
+            .add_attribute("status", "Open")
+    );
+}
+
 /*
-    #[test]
-    fn test_vote_works() {
-        let app = App::default();
+#[test]
+fn test_vote_works() {
 
-        let owner = app.api().addr_make("owner");
-        let voter1: Addr = app.api().addr_make("voter1");
-        let voter2 = app.api().addr_make("voter2");
-        let mut deps = mock_dependencies();
+    let app = App::default();
+    let msg = InstantiateMsg {
+        count: 0,
+        proposals: BTreeMap::new(),
+    };
+    let owner = app.api().addr_make("owner");
+    let voter1: Addr = app.api().addr_make("voter1");
+    let voter2 = app.api().addr_make("voter2");
+    let mut deps = mock_dependencies();
+    let info = message_info(&owner, &[]);
+    let start = instantiate(deps.as_mut(), mock_env(), info.clone(), msg.clone())
+    .expect("failed to instantiate");
+ let env = mock_env();
+    println!("Ora: {}", env.block.time);
+    let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
+    println!("Timestamp attuale in nanosecondi: {}", ts);
+    println!("Scade a : {}", Expiration::AtTime(ts.plus_days(2)));
 
-        let env = mock_env();
-        println!("Ora: {}", env.block.time);
-        let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
-        println!("Timestamp attuale in nanosecondi: {}", ts);
-        println!("Scade a : {}", Expiration::AtTime(ts.plus_days(2)));
+    let info = message_info(&owner, &[]);
+    let msg = InstantiateMsg {
+        title: "Che pasta ti piace?".to_string(),
+        description: "Dicci la tua preferenza!".to_string(),
+        option: vec![
+            "Norma".to_string(),
+            "Carbonara".to_string(),
+            "Gricia".to_string(),
+        ],
+        expiration: Expiration::AtTime(ts.plus_days(2)), // Expires in 2 days
+    };
 
-        let info = message_info(&owner, &[]);
-        let msg = InstantiateMsg {
-            title: "Che pasta ti piace?".to_string(),
-            description: "Dicci la tua preferenza!".to_string(),
-            option: vec![
-                "Norma".to_string(),
-                "Carbonara".to_string(),
-                "Gricia".to_string(),
-            ],
-            expiration: Expiration::AtTime(ts.plus_days(2)), // Expires in 2 days
-        };
 
-        let start = instantiate(deps.as_mut(), mock_env(), info.clone(), msg.clone())
-            .expect("failed to instantiate");
 
-        let a_vote = ExecuteMsg::Vote { vote: Vote::A };
+    let a_vote = ExecuteMsg::Vote { vote: Vote::A };
 
-        let b_vote = ExecuteMsg::Vote { vote: Vote::B };
-        let res = execute(deps.as_mut(), mock_env(), info, a_vote.clone()).unwrap();
+    let b_vote = ExecuteMsg::Vote { vote: Vote::B };
+    let res = execute(deps.as_mut(), mock_env(), info, a_vote.clone()).unwrap();
 
-        let info = message_info(&owner, &[]);
+    let info = message_info(&owner, &[]);
 
-        let err = execute(deps.as_mut(), mock_env(), info.clone(), b_vote.clone()).unwrap_err();
-        assert_eq!(err, ContractError::AlreadyVoted {});
-        // Verify
-        assert_eq!(
-            res,
-            Response::new()
-                .add_attribute("action", "vote")
-                .add_attribute("sender", owner.clone())
-                .add_attribute("status", "Open")
-        );
-        let info = message_info(&voter1, &[]);
-        let ask_1 = ExecuteMsg::UpdateVoters {
-            ask: info.sender.to_string(),
-            add: [].to_vec(),
-        };
+    let err = execute(deps.as_mut(), mock_env(), info.clone(), b_vote.clone()).unwrap_err();
+    assert_eq!(err, ContractError::AlreadyVoted {});
+    // Verify
+    assert_eq!(
+        res,
+        Response::new()
+            .add_attribute("action", "vote")
+            .add_attribute("sender", owner.clone())
+            .add_attribute("status", "Open")
+    );
+    let info = message_info(&voter1, &[]);
+    let ask_1 = ExecuteMsg::UpdateVoters {
+        ask: info.sender.to_string(),
+        add: [].to_vec(),
+    };
 
-        let response = execute(deps.as_mut(), mock_env(), info.clone(), ask_1.clone()).unwrap();
+    let response = execute(deps.as_mut(), mock_env(), info.clone(), ask_1.clone()).unwrap();
 
-        let info = message_info(&voter1, &[]);
+    let info = message_info(&voter1, &[]);
 
-        let info_owner = message_info(&owner, &[]);
-        let new_add_1 = ExecuteMsg::UpdateVoters {
-            ask: "".to_string(),
-            add: vec![voter1.to_string()],
-        };
-        let response = execute(deps.as_mut(), mock_env(), info_owner, new_add_1.clone()).unwrap();
+    let info_owner = message_info(&owner, &[]);
+    let new_add_1 = ExecuteMsg::UpdateVoters {
+        ask: "".to_string(),
+        add: vec![voter1.to_string()],
+    };
+    let response = execute(deps.as_mut(), mock_env(), info_owner, new_add_1.clone()).unwrap();
 
-        let vote1 = execute(deps.as_mut(), mock_env(), info, b_vote.clone()).unwrap();
-        let vote = QueryMsg::Vote {
-            voter: voter1.to_string(),
-        };
-        // println!("Il voto1 è: {:?}", vote1);
-        println!("Il voto è: {:?}", vote);
+    let vote1 = execute(deps.as_mut(), mock_env(), info, b_vote.clone()).unwrap();
+    let vote = QueryMsg::Vote {
+        voter: voter1.to_string(),
+    };
+    // println!("Il voto1 è: {:?}", vote1);
+    println!("Il voto è: {:?}", vote);
 
-        for item in BALLOTS.range(&deps.storage, None, None, Order::Ascending) {
-            match item {
-                Ok((voter, vote)) => {
-                    println!("Voter: {:?}, Vote: {:?}", voter, vote);
-                }
-                Err(err) => {
-                    // Gestisci l'errore
-                    eprintln!("Errore durante l'iterazione: {}", err);
-                }
+    for item in BALLOTS.range(&deps.storage, None, None, Order::Ascending) {
+        match item {
+            Ok((voter, vote)) => {
+                println!("Voter: {:?}, Vote: {:?}", voter, vote);
+            }
+            Err(err) => {
+                // Gestisci l'errore
+                eprintln!("Errore durante l'iterazione: {}", err);
             }
         }
-        let res = QueryMsg::Vote {
-            voter: owner.to_string(),
-        };
-        let query_result: VoteResponse =
-            from_json(query(deps.as_ref(), env.clone(), res).unwrap()).unwrap();
-        println!("QueryMsg::Vote: {:?}", query_result);
-
-        let vote_info = query_vote(deps.as_ref(), owner.to_string());
-        println!("query_vote: {:?}", vote_info.unwrap().vote);
-        let res = QueryMsg::Total {};
-        let query_result: Votes =
-            from_json(query(deps.as_ref(), env.clone(), res).unwrap()).unwrap();
-        let allvote = query_proposal_response(deps.as_ref());
-        println!("QueryMsg::Total: {:?}", query_result);
-        println!("Query diretta: {:?}", allvote.unwrap());
-
-        let res = QueryMsg::GetAllVotes {};
-        let query_result: Vec<VoteInfo> =
-            from_json(query(deps.as_ref(), env, res).unwrap()).unwrap();
-        println!("QueryMsg::Total: {:?}", query_result);
     }
+    let res = QueryMsg::Vote {
+        voter: owner.to_string(),
+    };
+    let query_result: VoteResponse =
+        from_json(query(deps.as_ref(), env.clone(), res).unwrap()).unwrap();
+    println!("QueryMsg::Vote: {:?}", query_result);
+
+    let vote_info = query_vote(deps.as_ref(), owner.to_string());
+    println!("query_vote: {:?}", vote_info.unwrap().vote);
+    let res = QueryMsg::Total {};
+    let query_result: Votes = from_json(query(deps.as_ref(), env.clone(), res).unwrap()).unwrap();
+    let allvote = query_proposal_response(deps.as_ref());
+    println!("QueryMsg::Total: {:?}", query_result);
+    println!("Query diretta: {:?}", allvote.unwrap());
+
+    let res = QueryMsg::GetAllVotes {};
+    let query_result: Vec<VoteInfo> = from_json(query(deps.as_ref(), env, res).unwrap()).unwrap();
+    println!("QueryMsg::Total: {:?}", query_result);
+}
+*/
+
+/*
 
     #[test]
     fn test_vote_request() {
