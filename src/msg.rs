@@ -1,16 +1,10 @@
 use std::collections::BTreeMap;
 
-use crate::state::{Proposal, Vote, Votes};
+use crate::state::{Proposal, ProposalStatus, Vote, Votes};
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{CosmosMsg, Empty};
+use cosmwasm_std::{Addr, CosmosMsg, Empty};
 use cw_utils::Expiration;
-// #[cw_serde]
-// pub struct InstantiateMsg {
-//     pub count: String,
-//     pub description: String,
-//     pub option: Vec<String>,
-//     pub expiration: Expiration,
-// }
+
 #[cw_serde]
 pub struct InstantiateMsg {
     pub count: u64,
@@ -60,6 +54,8 @@ pub enum QueryMsg {
     Vote { voter: String, proposal_id: u64 },
     #[returns(Votes)]
     Total { proposal_id: u64 },
+    #[returns(ProposalResponse)]
+    Proposal { proposal_id: u64 },
     // #[returns(VoteListResponse)]
     // GetAllVotes { proposal_id: u64 },
 }
@@ -68,4 +64,16 @@ pub enum QueryMsg {
 pub struct Voter {
     pub addr: String,
     pub weight: u64,
+}
+
+#[cw_serde]
+pub struct ProposalResponse<T = Empty> {
+    pub id: u64,
+    pub title: String,
+    pub description: String,
+    pub msgs: Vec<CosmosMsg<T>>,
+    pub status: ProposalStatus,
+    pub expires: Expiration,
+    pub proposer: Addr,
+    // pub deposit: Option<DepositInfo>,
 }

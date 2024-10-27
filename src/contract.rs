@@ -2,8 +2,8 @@
 use cosmwasm_std::entry_point;
 use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
 use cosmwasm_std::{
-    attr, coin, to_json_binary, Addr, BankMsg, Binary, CosmosMsg, Deps, DepsMut, Empty, Env,
-    MessageInfo, Order, Response, StdError, StdResult, Timestamp,
+    attr, coin, from_binary, from_json, to_json_binary, Addr, BankMsg, Binary, CosmosMsg, Deps,
+    DepsMut, Empty, Env, MessageInfo, Order, Response, StdError, StdResult, Timestamp,
 };
 use cw_multi_test::App;
 use cw_utils::Expiration;
@@ -12,7 +12,7 @@ use tests::setup_test_case;
 // use cw2::set_contract_version;
 
 use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg, VoteInfo, VoteResponse};
+use crate::msg::{ExecuteMsg, InstantiateMsg, ProposalResponse, QueryMsg, VoteInfo, VoteResponse};
 use crate::state::{
     next_id, Proposal, ProposalStatus, State, Vote, Votes, BALLOTS, PROPOSALS, STATUS, VOTERS,
 };
@@ -246,7 +246,7 @@ pub fn execute_vote(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         //DONE
         QueryMsg::Vote { voter, proposal_id } => {
@@ -255,6 +255,10 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         //DONE
         QueryMsg::Total { proposal_id } => {
             to_json_binary(&query_proposal_response(deps, proposal_id)?)
+        }
+
+        QueryMsg::Proposal { proposal_id } => {
+            to_json_binary(&query_proposal(deps, env, proposal_id)?)
         } //TODO
           /*
           QueryMsg::GetAllVotes {proposal_id} => {
@@ -274,6 +278,23 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
           */
     }
 }
+
+fn query_proposal(deps: Deps, env: Env, id: u64) -> StdResult<ProposalResponse> {
+    let prop = PROPOSALS.load(deps.storage, id)?;
+    let status = prop.current_status(&env.block);
+    Ok(ProposalResponse {
+        id,
+        title: prop.title,
+        description: prop.description,
+        msgs: prop.msgs,
+        status,
+        expires: prop.expires,
+        // deposit: prop.deposit,
+        proposer: prop.proposer,
+        // threshold,
+    })
+}
+
 /*
 fn query_vote(deps: Deps, voter: String) -> StdResult<VoteResponse> {
     let voter = deps.api.addr_validate(&voter)?;
@@ -460,7 +481,13 @@ fn test_vote_works() {
         proposal_id,
         vote: Vote::A,
     };
-    let err = execute(deps.as_mut(), mock_env(), info_test_vote_1.clone(), a_vote.clone()).unwrap_err();
+    let err = execute(
+        deps.as_mut(),
+        mock_env(),
+        info_test_vote_1.clone(),
+        a_vote.clone(),
+    )
+    .unwrap_err();
     assert_eq!(err, ContractError::Unauthorized {});
 
     // test ask to join works
@@ -503,7 +530,13 @@ fn test_vote_works() {
 
     // Test vote from voter1 works
 
-    let response_vote_ok = execute(deps.as_mut(), mock_env(), info_test_vote_1.clone(), a_vote.clone()).unwrap();
+    let response_vote_ok = execute(
+        deps.as_mut(),
+        mock_env(),
+        info_test_vote_1.clone(),
+        a_vote.clone(),
+    )
+    .unwrap();
 
     // Verify
     assert_eq!(
@@ -516,13 +549,33 @@ fn test_vote_works() {
     );
 
     // Test voting twice Error
-    let b_vote = ExecuteMsg::Vote {proposal_id, vote: Vote::B };
+    let b_vote = ExecuteMsg::Vote {
+        proposal_id,
+        vote: Vote::B,
+    };
 
-    let err = execute(deps.as_mut(), mock_env(), info_test_vote_1.clone(), b_vote.clone()).unwrap_err();
+    let err = execute(
+        deps.as_mut(),
+        mock_env(),
+        info_test_vote_1.clone(),
+        b_vote.clone(),
+    )
+    .unwrap_err();
     assert_eq!(err, ContractError::AlreadyVoted {});
 
-    
-    // assert_eq!(err, ContractError::Unauthorized { });
+    // Query proposal info
+    let query_proposal = QueryMsg::Proposal { proposal_id };
+
+    let query_proposal_true: ProposalResponse =
+        from_json(query(deps.as_ref(), mock_env(), query_proposal).unwrap()).unwrap();
+
+    println!("query_response_true diretta: {:?}", query_proposal_true);
+
+    // Query proposal response
+    let query_proposal_response = QueryMsg::Total { proposal_id };
+    let query_proposal_response_true: Votes =
+        from_json(query(deps.as_ref(), mock_env(), query_proposal_response).unwrap()).unwrap();
+        println!("query_proposal_response_true: {:?}", query_proposal_response_true);
 
     /*
     let b_vote = ExecuteMsg::Vote {proposal_id, vote: Vote::B };
