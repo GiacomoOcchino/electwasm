@@ -379,6 +379,7 @@ fn test_create_proposal() {
     let proposals: BTreeMap<u64, Proposal> = BTreeMap::new();
     let info = message_info(&owner, &[]);
     setup_test_case(deps.as_mut(), info, count, proposals).unwrap();
+
     let bank_msg = BankMsg::Send {
         to_address: owner.into(),
         amount: vec![coin(1, "ucosm")],
@@ -412,30 +413,28 @@ fn test_create_proposal() {
     );
 }
 
-/*
 #[test]
 fn test_vote_works() {
-
-    let app = App::default();
-    let msg = InstantiateMsg {
-        count: 0,
-        proposals: BTreeMap::new(),
-    };
-    let owner = app.api().addr_make("owner");
-    let voter1: Addr = app.api().addr_make("voter1");
-    let voter2 = app.api().addr_make("voter2");
+    // Instantiate contract
     let mut deps = mock_dependencies();
-    let info = message_info(&owner, &[]);
-    let start = instantiate(deps.as_mut(), mock_env(), info.clone(), msg.clone())
-    .expect("failed to instantiate");
- let env = mock_env();
-    println!("Ora: {}", env.block.time);
-    let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
-    println!("Timestamp attuale in nanosecondi: {}", ts);
-    println!("Scade a : {}", Expiration::AtTime(ts.plus_days(2)));
+    let app = App::default();
+    let owner = app.api().addr_make("owner");
+    // let voter1: Addr = app.api().addr_make("voter1");
+    let count: u64 = 0;
+    let proposals: BTreeMap<u64, Proposal> = BTreeMap::new();
+    let info = message_info(&owner.clone(), &[]);
+    setup_test_case(deps.as_mut(), info.clone(), count, proposals).unwrap();
 
-    let info = message_info(&owner, &[]);
-    let msg = InstantiateMsg {
+    // Create propose
+    let bank_msg = BankMsg::Send {
+        to_address: owner.to_string(),
+        amount: vec![coin(1, "ucosm")],
+    };
+    let msgs = vec![CosmosMsg::Bank(bank_msg)];
+    let env = mock_env();
+    let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
+
+    let proposal = ExecuteMsg::Propose {
         title: "Che pasta ti piace?".to_string(),
         description: "Dicci la tua preferenza!".to_string(),
         option: vec![
@@ -443,15 +442,90 @@ fn test_vote_works() {
             "Carbonara".to_string(),
             "Gricia".to_string(),
         ],
-        expiration: Expiration::AtTime(ts.plus_days(2)), // Expires in 2 days
+        expires: Expiration::AtTime(ts.plus_days(2)),
+        msgs: msgs,
     };
+    let res = execute(deps.as_mut(), mock_env(), info, proposal.clone()).unwrap();
 
+    // Get the proposal id from the logs
+    let proposal_id: u64 = res.attributes[2].value.parse().unwrap();
 
+    let voter1 = app.api().addr_make("voter1");
+    let voter2 = app.api().addr_make("voter2");
 
-    let a_vote = ExecuteMsg::Vote { vote: Vote::A };
+    let info_test_vote_1 = message_info(&voter1, &[]);
 
-    let b_vote = ExecuteMsg::Vote { vote: Vote::B };
-    let res = execute(deps.as_mut(), mock_env(), info, a_vote.clone()).unwrap();
+    // test voter with no permission
+    let a_vote = ExecuteMsg::Vote {
+        proposal_id,
+        vote: Vote::A,
+    };
+    let err = execute(deps.as_mut(), mock_env(), info_test_vote_1.clone(), a_vote.clone()).unwrap_err();
+    assert_eq!(err, ContractError::Unauthorized {});
+
+    // test ask to join works
+
+    let info_ask_1 = message_info(&voter1, &[]);
+    let ask_1 = ExecuteMsg::UpdateVoters {
+        proposal_id,
+        ask: info_ask_1.sender.to_string(),
+        add: [].to_vec(),
+    };
+    let response = execute(deps.as_mut(), mock_env(), info_ask_1.clone(), ask_1.clone()).unwrap();
+    // Verify
+    assert_eq!(
+        response,
+        Response::new()
+            .add_attribute("action", "update_voters")
+            .add_attribute("proposal", 1.to_string())
+            .add_attribute("added", 0.to_string())
+            .add_attribute("ask to join", voter1.clone())
+            .add_attribute("sender", voter1.clone())
+    );
+    // owner accept voter1 to join
+    let info_owner = message_info(&owner, &[]);
+    let add_1 = ExecuteMsg::UpdateVoters {
+        proposal_id,
+        ask: "".to_string(),
+        add: vec![voter1.to_string()],
+    };
+    let response = execute(deps.as_mut(), mock_env(), info_owner, add_1.clone()).unwrap();
+    // Verify
+    assert_eq!(
+        response,
+        Response::new()
+            .add_attribute("action", "update_voters")
+            .add_attribute("proposal", 1.to_string())
+            .add_attribute("added", 1.to_string())
+            .add_attribute("ask to join", "")
+            .add_attribute("sender", owner.clone())
+    );
+
+    // Test vote from voter1 works
+
+    let response_vote_ok = execute(deps.as_mut(), mock_env(), info_test_vote_1.clone(), a_vote.clone()).unwrap();
+
+    // Verify
+    assert_eq!(
+        response_vote_ok,
+        Response::new()
+            .add_attribute("action", "vote")
+            .add_attribute("sender", voter1.clone())
+            .add_attribute("proposal_id", 1.to_string())
+            .add_attribute("status", "Open")
+    );
+
+    // Test voting twice Error
+    let b_vote = ExecuteMsg::Vote {proposal_id, vote: Vote::B };
+
+    let err = execute(deps.as_mut(), mock_env(), info_test_vote_1.clone(), b_vote.clone()).unwrap_err();
+    assert_eq!(err, ContractError::AlreadyVoted {});
+
+    
+    // assert_eq!(err, ContractError::Unauthorized { });
+
+    /*
+    let b_vote = ExecuteMsg::Vote {proposal_id, vote: Vote::B };
 
     let info = message_info(&owner, &[]);
 
@@ -467,6 +541,7 @@ fn test_vote_works() {
     );
     let info = message_info(&voter1, &[]);
     let ask_1 = ExecuteMsg::UpdateVoters {
+        proposal_id,
         ask: info.sender.to_string(),
         add: [].to_vec(),
     };
@@ -517,8 +592,9 @@ fn test_vote_works() {
 
     let res = QueryMsg::GetAllVotes {};
     let query_result: Vec<VoteInfo> = from_json(query(deps.as_ref(), env, res).unwrap()).unwrap();
-    println!("QueryMsg::Total: {:?}", query_result);
+    println!("QueryMsg::Total: {:?}", query_result);*/
 }
+/*
 */
 
 /*
