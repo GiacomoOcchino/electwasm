@@ -1,7 +1,5 @@
-use std::collections::BTreeMap;
-
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, BlockInfo,Empty, CosmosMsg, StdResult, Storage, Timestamp};
+use cosmwasm_std::{Addr, BlockInfo, CosmosMsg, Empty, StdResult, Storage, Timestamp, Uint128};
 
 use cw_storage_plus::{Item, Map};
 use cw_utils::Expiration;
@@ -103,6 +101,13 @@ pub const PROPOSALS: Map<u64, Proposal> = Map::new("proposals");
 
 #[cw_serde]
 pub struct State {
+    pub admin: Addr,
+    pub accepted_tokens: Vec<String>,
+    /* Tenere in considerazione */
+    // pub accepted_tokens: Vec<Addr>,
+    // pub accepted_tokens: BTreeMap<String, Addr>,
+    pub proposal_commission: u128,
+    pub voting_fee: u64,
 }
 
 

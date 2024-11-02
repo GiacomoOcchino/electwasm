@@ -7,8 +7,9 @@ use cw_utils::Expiration;
 
 #[cw_serde]
 pub struct InstantiateMsg {
-    pub count: u64,
-    pub proposals: BTreeMap<u64, Proposal>,
+    pub accepted_tokens: Vec<String>,
+    pub proposal_commission: u128,
+    pub voting_fee: u64,
 }
 
 #[cw_serde]

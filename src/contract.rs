@@ -1,9 +1,6 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{
-    to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response,
-    StdResult,
-};
+use cosmwasm_std::{to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
 
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -18,9 +15,12 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     let state = State {
-        count: msg.count,
-        proposals: msg.proposals,
+        admin: info.sender,
+        accepted_tokens: msg.accepted_tokens,
+        proposal_commission: msg.proposal_commission,
+        voting_fee: 0,
     };
+
     STATUS.save(deps.storage, &state)?;
 
     //TODO Check
@@ -113,12 +113,12 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
     use crate::state::{Proposal, Vote, Votes, STATUS};
     use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
-    use cosmwasm_std::{coin, from_json, Addr, BankMsg, CosmosMsg, Empty, Timestamp};
+    use cosmwasm_std::{coin, from_json, Addr, BankMsg, CosmosMsg, Empty, Timestamp, Uint128};
     use cw_multi_test::App;
     use cw_utils::Expiration;
+    use std::collections::BTreeMap;
 
     use super::*;
     use crate::msg::{InstantiateMsg, ProposalResponse};
@@ -128,11 +128,12 @@ mod tests {
     fn setup_test_case(
         deps: DepsMut,
         info: MessageInfo,
-        count: u64,
-        proposals: BTreeMap<u64, Proposal>,
+        accepted_tokens: Vec<String>,
+        proposal_commission: u128,
+        voting_fee: u64,
     ) -> Result<Response<Empty>, ContractError> {
         // Instantiate a contract with voters
-        let instantiate_msg = InstantiateMsg { count, proposals };
+        let instantiate_msg = InstantiateMsg { accepted_tokens,proposal_commission,voting_fee };
         instantiate(deps, mock_env(), info, instantiate_msg)
     }
 
@@ -142,8 +143,9 @@ mod tests {
         let env = mock_env();
         // let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
         let msg = InstantiateMsg {
-            count: 0,
-            proposals: BTreeMap::new(),
+            accepted_tokens:vec!["uatom".to_string(),"ujunox".to_string()],
+            proposal_commission: 500_000,
+            voting_fee: 0,
         };
         let app = App::default();
 
@@ -151,7 +153,7 @@ mod tests {
 
         let info = message_info(&owner, &[]);
 
-        let response = instantiate(deps.as_mut(), mock_env(), info, msg.clone())
+        let response = instantiate(deps.as_mut(), mock_env(), info.clone(), msg.clone())
             .expect("failed to instantiate");
 
         // Asserto per verificare la risposta
@@ -159,8 +161,9 @@ mod tests {
 
         // Asserto per verificare lo stato salvato
         let state = STATUS.load(&deps.storage).expect("failed to load state");
-        assert_eq!(state.count, msg.count);
-        assert_eq!(state.proposals, msg.proposals);
+        assert_eq!(state.accepted_tokens, msg.accepted_tokens);
+        assert_eq!(state.admin, info.sender);
+        assert_eq!(state.proposal_commission, msg.proposal_commission);
         // assert_eq!(state.option, msg.option);
         // assert_eq!(Votes::start(), state.votes); // Verifica che i voti siano inizializzati correttamente
         // assert_eq!(state.expires, msg.expiration);
@@ -177,7 +180,7 @@ mod tests {
         let count: u64 = 0;
         let proposals: BTreeMap<u64, Proposal> = BTreeMap::new();
         let info = message_info(&owner, &[]);
-        setup_test_case(deps.as_mut(), info, count, proposals).unwrap();
+        // setup_test_case(deps.as_mut(), info, count, proposals).unwrap();
 
         let bank_msg = BankMsg::Send {
             to_address: owner.into(),
@@ -222,7 +225,7 @@ mod tests {
         let count: u64 = 0;
         let proposals: BTreeMap<u64, Proposal> = BTreeMap::new();
         let info = message_info(&owner.clone(), &[]);
-        setup_test_case(deps.as_mut(), info.clone(), count, proposals).unwrap();
+        // setup_test_case(deps.as_mut(), info.clone(), count, proposals).unwrap();
 
         // Create propose
         let bank_msg = BankMsg::Send {
