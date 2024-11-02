@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap};
+use std::collections::BTreeMap;
 
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, BlockInfo,Empty, CosmosMsg, StdResult, Storage, Timestamp};
@@ -67,7 +67,6 @@ pub struct Ballot {
 pub const STATUS: Item<State> = Item::new("status");
 
 pub const BALLOTS: Map<(u64,&Addr), Vote> = Map::new("votes");
-pub const ADMINS: Map<&Addr, Timestamp> = Map::new("admins");
 pub const VOTERS: Map<(u64,&Addr), bool> = Map::new("voters");
 
 #[cw_serde]
@@ -104,8 +103,6 @@ pub const PROPOSALS: Map<u64, Proposal> = Map::new("proposals");
 
 #[cw_serde]
 pub struct State {
-   pub count: u64,
-   pub proposals: BTreeMap<u64, Proposal>,
 }
 
 

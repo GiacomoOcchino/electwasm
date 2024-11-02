@@ -6,7 +6,7 @@ use cw_utils::Expiration;
 
 use crate::{
     state::{
-        next_id, Proposal, ProposalStatus, Vote, Votes, ADMINS, BALLOTS, PROPOSALS, STATUS, VOTERS,
+        next_id, Proposal, ProposalStatus, Vote, Votes, BALLOTS, PROPOSALS, VOTERS,
     },
     ContractError,
 };
@@ -21,7 +21,6 @@ pub fn execute_propose(
     msgs: Vec<CosmosMsg>,
     // we ignore earliest
 ) -> Result<Response<Empty>, ContractError> {
-    /*let status = STATUS.load(deps.storage)?;*/
     // create a proposal
     let mut prop = Proposal {
         title,

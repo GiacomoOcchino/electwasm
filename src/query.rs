@@ -1,7 +1,7 @@
 use cosmwasm_std::{ Deps, StdError, StdResult,Env};
 use crate::{
     msg::{ProposalResponse,VoteInfo,VoteResponse},
-    state::{STATUS,ADMINS,BALLOTS,PROPOSALS,Votes}
+    state::{BALLOTS,PROPOSALS,Votes}
 };
 pub fn query_proposal(deps: Deps, env: Env, id: u64) -> StdResult<ProposalResponse> {
     let prop = PROPOSALS.load(deps.storage, id)?;
