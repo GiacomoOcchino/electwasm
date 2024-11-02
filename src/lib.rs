@@ -1,5 +1,7 @@
 pub mod contract;
 mod error;
+pub mod exec;
+pub mod query;
 pub mod helpers;
 pub mod msg;
 pub mod state;
