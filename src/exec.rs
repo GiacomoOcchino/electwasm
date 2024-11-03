@@ -1,16 +1,14 @@
 use cosmwasm_std::{
-    attr, coin, from_json, to_json_binary, Addr, BankMsg, Binary, CosmosMsg, Deps, DepsMut, Empty,
-    Env, MessageInfo, Order, Response, StdError, StdResult, Timestamp,
+    attr, coin, coins, from_json, to_json_binary, Addr, BankMsg, Binary, CosmosMsg, Deps, DepsMut,
+    Empty, Env, MessageInfo, Order, Response, StdError, StdResult, Timestamp, Uint128,
 };
 use cw_utils::Expiration;
 
 use crate::{
-    state::{
-        next_id, Proposal, ProposalStatus, Vote, Votes, BALLOTS, PROPOSALS, VOTERS,
-    },
+    state::{next_id, Proposal, ProposalStatus, Vote, Votes, BALLOTS, PROPOSALS, STATUS, VOTERS},
     ContractError,
 };
-pub fn execute_propose(
+pub fn execute_create_proposal(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
@@ -20,7 +18,38 @@ pub fn execute_propose(
     expires: Expiration,
     msgs: Vec<CosmosMsg>,
     // we ignore earliest
-) -> Result<Response<Empty>, ContractError> {
+) -> Result<Response, ContractError> {
+    let state = STATUS.load(deps.storage)?;
+    let owner = state.admin;
+    let commission = Uint128::new(state.proposal_commission);
+    let denom = state.accepted_tokens;
+    let mut funds = Uint128::new(0);
+    let mut info_denom;
+    // Controlliamo se la denominazione è presente nell'array di token accettati
+    for coin in info.funds.iter() {
+        if denom.contains(&coin.denom) {
+            funds = coin.amount;
+            info_denom = coin.denom;
+        } else {
+            return Err(ContractError::UnsupportedToken {});
+        }
+    }
+
+    if funds < commission {
+        return Err(ContractError::InsufficientFunds { funds, commission });
+    }
+
+    if !commission.is_zero() {
+        let funds: Vec<_> = coins(commission.u128(), info_denom);
+
+        let commission_msg = BankMsg::Send {
+            to_address: owner.into_string(),
+            amount: funds,
+        };
+        // resp = resp
+        //     .add_message(commission_msg)
+        //     .add_attribute("commission_payer", info.sender.as_str());
+    }
     // create a proposal
     let mut prop = Proposal {
         title,
@@ -31,24 +60,13 @@ pub fn execute_propose(
         status: ProposalStatus::Open,
         votes: Votes::start(),
         proposer: info.sender.clone(),
-        // fee: None,
     };
     prop.update_status(&env.block); //TODO Check
     let id = next_id(deps.storage)?;
     PROPOSALS.save(deps.storage, id, &prop)?;
 
-    /*
-    // add the first yes vote from voter
-    let ballot = Ballot {
-        weight: vote_power,
-        vote: Vote::Yes,
-    };
-
-
-    BALLOTS.save(deps.storage, (id, &info.sender), &ballot)?;
-    */
-    // add the first voter to the proposal?
     Ok(Response::new()
+        .add_attribute("commission_payer", info.sender.as_str())
         .add_attribute("action", "propose")
         .add_attribute("sender", info.sender)
         .add_attribute("proposal_id", id.to_string())
@@ -57,7 +75,7 @@ pub fn execute_propose(
 
 pub fn execute_update_voters(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
     add: Vec<String>,
     ask: String,

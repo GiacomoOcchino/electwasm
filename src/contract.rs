@@ -67,7 +67,16 @@ pub fn execute(
             option,
             expires,
             msgs,
-        } => exec::execute_propose(deps, env, info, title, description, option, expires, msgs),
+        } => exec::execute_create_proposal(
+            deps,
+            env,
+            info,
+            title,
+            description,
+            option,
+            expires,
+            msgs,
+        ),
         Vote { vote, proposal_id } => exec::execute_vote(deps, env, info, vote, proposal_id),
         UpdateVoters {
             add,
@@ -133,17 +142,21 @@ mod tests {
         voting_fee: u64,
     ) -> Result<Response<Empty>, ContractError> {
         // Instantiate a contract with voters
-        let instantiate_msg = InstantiateMsg { accepted_tokens,proposal_commission,voting_fee };
+        let instantiate_msg = InstantiateMsg {
+            accepted_tokens,
+            proposal_commission,
+            voting_fee,
+        };
         instantiate(deps, mock_env(), info, instantiate_msg)
     }
-
+    /*Done */
     #[test]
     fn test_instantiate_with_valid_message() {
         let mut deps = mock_dependencies();
         let env = mock_env();
         // let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
         let msg = InstantiateMsg {
-            accepted_tokens:vec!["uatom".to_string(),"ujunox".to_string()],
+            accepted_tokens: vec!["uatom".to_string(), "ujunox".to_string()],
             proposal_commission: 500_000,
             voting_fee: 0,
         };
@@ -177,10 +190,17 @@ mod tests {
 
         let owner = app.api().addr_make("owner");
         let voter1: Addr = app.api().addr_make("voter1");
-        let count: u64 = 0;
-        let proposals: BTreeMap<u64, Proposal> = BTreeMap::new();
         let info = message_info(&owner, &[]);
-        // setup_test_case(deps.as_mut(), info, count, proposals).unwrap();
+        /*Start Istantiate */
+        let accepted_tokens = vec!["ujunox".to_string(), "uatom".to_string()];
+        let proposal_commission = 500_000;
+        let voting_fee = 0;
+
+        setup_test_case(deps.as_mut(), info, accepted_tokens, proposal_commission,voting_fee).unwrap();
+
+        /*End Istantiate */
+
+        /*Start create proposal */
 
         let bank_msg = BankMsg::Send {
             to_address: owner.into(),
