@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use crate::state::{Proposal, ProposalStatus, Vote, Votes};
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, CosmosMsg, Empty};

@@ -1,6 +1,6 @@
 use cosmwasm_std::{
-    attr, coin, coins, from_json, to_json_binary, Addr, BankMsg, Binary, CosmosMsg, Deps, DepsMut,
-    Empty, Env, MessageInfo, Order, Response, StdError, StdResult, Timestamp, Uint128,
+    attr,  coins, from_json, to_json_binary, Addr, BankMsg, CosmosMsg, Deps, DepsMut,
+    Empty, Env, MessageInfo,  Response,  StdResult, Uint128,
 };
 use cw_utils::Expiration;
 
@@ -24,12 +24,12 @@ pub fn execute_create_proposal(
     let commission = Uint128::new(state.proposal_commission);
     let denom = state.accepted_tokens;
     let mut funds = Uint128::new(0);
-    let mut info_denom;
+    let mut info_denom="".to_string();
     // Controlliamo se la denominazione è presente nell'array di token accettati
     for coin in info.funds.iter() {
         if denom.contains(&coin.denom) {
             funds = coin.amount;
-            info_denom = coin.denom;
+            info_denom = coin.denom.clone();
         } else {
             return Err(ContractError::UnsupportedToken {});
         }
@@ -39,7 +39,7 @@ pub fn execute_create_proposal(
         return Err(ContractError::InsufficientFunds { funds, commission });
     }
 
-    if !commission.is_zero() {
+    if !commission.is_zero() && info_denom.len()>0 {
         let funds: Vec<_> = coins(commission.u128(), info_denom);
 
         let commission_msg = BankMsg::Send {

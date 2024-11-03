@@ -124,7 +124,9 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
 mod tests {
     use crate::state::{Proposal, Vote, Votes, STATUS};
     use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
-    use cosmwasm_std::{coin, from_json, Addr, BankMsg, CosmosMsg, Empty, Timestamp, Uint128};
+    use cosmwasm_std::{
+        coin, coins, from_json, Addr, BankMsg, CosmosMsg, Empty, Timestamp, Uint128,
+    };
     use cw_multi_test::App;
     use cw_utils::Expiration;
     use std::collections::BTreeMap;
@@ -177,10 +179,88 @@ mod tests {
         assert_eq!(state.accepted_tokens, msg.accepted_tokens);
         assert_eq!(state.admin, info.sender);
         assert_eq!(state.proposal_commission, msg.proposal_commission);
-        // assert_eq!(state.option, msg.option);
-        // assert_eq!(Votes::start(), state.votes); // Verifica che i voti siano inizializzati correttamente
-        // assert_eq!(state.expires, msg.expiration);
-        // assert_eq!(state.status, Status::Open);
+    }
+
+    #[test]
+    fn create_proposal_insufficient_funds() {
+        // define owner and proposer
+        let app = App::default();
+        let owner = app.api().addr_make("owner");
+        let voter1: Addr = app.api().addr_make("voter1");
+
+        let mut deps = mock_dependencies();
+
+        let mut app = App::new(|router, _api, storage| {
+            router
+                .bank
+                .init_balance(storage, &voter1, coins(400_000, "ujunox"))
+                .unwrap();
+        });
+
+        let info = message_info(&owner, &[]);
+        /*Start Istantiate */
+        let accepted_tokens = vec!["ujunox".to_string(), "uatom".to_string()];
+        let proposal_commission = 500_000;
+        let voting_fee = 0;
+
+        setup_test_case(
+            deps.as_mut(),
+            info,
+            accepted_tokens,
+            proposal_commission,
+            voting_fee,
+        )
+        .unwrap();
+
+        /*End Istantiate */
+
+        /*Start create proposal */
+
+        let bank_msg = BankMsg::Send {
+            to_address: owner.into(),
+            amount: vec![coin(1, "ucosm")],
+        };
+        let msgs = vec![CosmosMsg::Bank(bank_msg)];
+        let env = mock_env();
+        let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
+
+        let proposal = ExecuteMsg::Propose {
+            title: "Che pasta ti piace?".to_string(),
+            description: "Dicci la tua preferenza!".to_string(),
+            option: vec![
+                "Norma".to_string(),
+                "Carbonara".to_string(),
+                "Gricia".to_string(),
+            ],
+            expires: Expiration::AtTime(ts.plus_days(2)),
+            msgs: msgs,
+        };
+        // Not supported Token
+        let info = message_info(&voter1, &coins(1_000, "ucosm"));
+        let res = execute(deps.as_mut(), mock_env(), info, proposal.clone()).unwrap_err();
+        // Verify
+        assert_eq!(res, ContractError::UnsupportedToken {});
+
+        let info = message_info(&voter1, &coins(400_000, "ujunox"));
+        let res = execute(deps.as_mut(), mock_env(), info, proposal.clone()).unwrap_err();
+
+        assert_eq!(
+            res,
+            ContractError::InsufficientFunds {
+                funds: Uint128::new(400_000),
+                commission: Uint128::new(500_000)
+            }
+        );
+
+        // assert_eq!(
+        //     res,
+        //     Response::new()
+        //         .add_attribute("commission_payer", voter1.clone())
+        //         .add_attribute("action", "propose")
+        //         .add_attribute("sender", voter1)
+        //         .add_attribute("proposal_id", 1.to_string())
+        //         .add_attribute("status", "Open")
+        // );
     }
 
     #[test]
@@ -196,7 +276,14 @@ mod tests {
         let proposal_commission = 500_000;
         let voting_fee = 0;
 
-        setup_test_case(deps.as_mut(), info, accepted_tokens, proposal_commission,voting_fee).unwrap();
+        setup_test_case(
+            deps.as_mut(),
+            info,
+            accepted_tokens,
+            proposal_commission,
+            voting_fee,
+        )
+        .unwrap();
 
         /*End Istantiate */
 
