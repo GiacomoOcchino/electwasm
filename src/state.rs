@@ -1,5 +1,5 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, BlockInfo, CosmosMsg, Empty, StdResult, Storage,};
+use cosmwasm_std::{Addr, BlockInfo, Coins, CosmosMsg, Empty, StdResult, Storage};
 
 use cw_storage_plus::{Item, Map};
 use cw_utils::Expiration;
@@ -102,12 +102,13 @@ pub const PROPOSALS: Map<u64, Proposal> = Map::new("proposals");
 #[cw_serde]
 pub struct State {
     pub admin: Addr,
-    pub accepted_tokens: Vec<String>,
+    pub accepted_tokens: Vec<String>, // TODO da rimuovere
     /* Tenere in considerazione */
     // pub accepted_tokens: Vec<Addr>,
     // pub accepted_tokens: BTreeMap<String, Addr>,
-    pub proposal_commission: u128,
-    pub voting_fee: u64,
+    pub proposal_commission: u128, // TODO da rimuovere
+    //pub commissions: Coins, //TODO DA INSERIRE
+    pub voting_fee: u64, //Todo valutare a chi pagare la fee
 }
 
 

@@ -187,13 +187,12 @@ mod tests {
         let app = App::default();
         let owner = app.api().addr_make("owner");
         let voter1: Addr = app.api().addr_make("voter1");
-
         let mut deps = mock_dependencies();
 
         let mut app = App::new(|router, _api, storage| {
             router
                 .bank
-                .init_balance(storage, &voter1, coins(400_000, "ujunox"))
+                .init_balance(storage, &voter1, coins(500_000, "ujunox"))
                 .unwrap();
         });
 
@@ -252,6 +251,11 @@ mod tests {
             }
         );
 
+        assert_eq!(
+            app.wrap().query_all_balances(voter1.clone()).unwrap(),
+            coins(500_000, "ujunox")
+        );
+
         // assert_eq!(
         //     res,
         //     Response::new()
@@ -260,6 +264,97 @@ mod tests {
         //         .add_attribute("sender", voter1)
         //         .add_attribute("proposal_id", 1.to_string())
         //         .add_attribute("status", "Open")
+        // );
+    }
+    #[test]
+    fn create_proposal_correct_funds() {
+        // define owner and proposer
+        let app = App::default();
+        let owner = app.api().addr_make("owner");
+        let voter1: Addr = app.api().addr_make("voter1");
+        println!("Il proprietario è {:?}", owner);
+
+        let mut deps = mock_dependencies();
+
+        let mut app = App::new(|router, _api, storage| {
+            router
+                .bank
+                .init_balance(storage, &voter1, coins(0, "uatom"))
+                .unwrap();
+        });
+
+        let info = message_info(&owner, &[]);
+        /*Start Istantiate */
+        let accepted_tokens = vec!["ujunox".to_string(), "uatom".to_string()];
+        let proposal_commission = 500_000;
+        let voting_fee = 0;
+
+        setup_test_case(
+            deps.as_mut(),
+            info,
+            accepted_tokens,
+            proposal_commission,
+            voting_fee,
+        )
+        .unwrap();
+        let state = STATUS.load(deps.as_mut().storage).unwrap();
+        let o = state.admin;
+        println!("Il proprietario è {:?}", o);
+        println!("Il richiedente è {:?}", voter1.clone());
+
+        /*End Istantiate */
+
+        /*Start create proposal */
+
+        let bank_msg = BankMsg::Send {
+            to_address: owner.clone().into(),
+            amount: vec![coin(1, "ucosm")],
+        };
+        let msgs = vec![CosmosMsg::Bank(bank_msg)];
+        let env = mock_env();
+        let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
+
+        let proposal = ExecuteMsg::Propose {
+            title: "Che pasta ti piace?".to_string(),
+            description: "Dicci la tua preferenza!".to_string(),
+            option: vec![
+                "Norma".to_string(),
+                "Carbonara".to_string(),
+                "Gricia".to_string(),
+            ],
+            expires: Expiration::AtTime(ts.plus_days(2)),
+            msgs: msgs,
+        };
+        let info = message_info(&voter1, &coins(500_000, "uatom"));
+        let res = execute(deps.as_mut(), mock_env(), info, proposal.clone()).unwrap();
+          assert_eq!(
+            app.wrap().query_all_balances(voter1).unwrap(),
+            coins(0, "uatom")
+        );
+        // Verifica che l'evento di commissione sia stato generato correttamente
+        // assert!(res.messages.iter().any(|msg| {
+        //     if let CosmosMsg::Bank(BankMsg::Send { to_address, amount }) = &msg.msg {
+        //         to_address == &owner.clone().into_string() && amount == &coins(500_000, "uatom")
+        //     } else {
+        //         false
+        //     }
+        // }));
+        // assert_eq!(
+        //     res,
+        //     Response::new()
+        //         .add_attribute("commission_payer", voter1.clone())
+        //         .add_attribute("action", "propose")
+        //         .add_attribute("sender", voter1.clone())
+        //         .add_attribute("proposal_id", 1.to_string())
+        //         .add_attribute("status", "Open")
+        // );
+        // assert_eq!(
+        //     app.wrap().query_all_balances(voter1).unwrap(),
+        //     coins(400_000, "uatom")
+        // );
+        // assert_eq!(
+        //     app.wrap().query_all_balances(owner).unwrap(),
+        //     coins(100_000, "uatom")
         // );
     }
 

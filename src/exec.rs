@@ -1,6 +1,5 @@
 use cosmwasm_std::{
-    attr,  coins, from_json, to_json_binary, Addr, BankMsg, CosmosMsg, Deps, DepsMut,
-    Empty, Env, MessageInfo,  Response,  StdResult, Uint128,
+    attr, coins, from_json, to_json_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo, Response, StdResult, SubMsg, Uint128
 };
 use cw_utils::Expiration;
 
@@ -18,59 +17,88 @@ pub fn execute_create_proposal(
     expires: Expiration,
     msgs: Vec<CosmosMsg>,
     // we ignore earliest
-) -> Result<Response, ContractError> {
-    let state = STATUS.load(deps.storage)?;
-    let owner = state.admin;
-    let commission = Uint128::new(state.proposal_commission);
-    let denom = state.accepted_tokens;
-    let mut funds = Uint128::new(0);
-    let mut info_denom="".to_string();
-    // Controlliamo se la denominazione è presente nell'array di token accettati
-    for coin in info.funds.iter() {
-        if denom.contains(&coin.denom) {
-            funds = coin.amount;
-            info_denom = coin.denom.clone();
-        } else {
-            return Err(ContractError::UnsupportedToken {});
-        }
-    }
+) -> Result<Response<Empty>, ContractError> {
+    // let state = STATUS.load(deps.storage)?;
+    // let owner = state.admin;
+    // let commission = Uint128::new(state.proposal_commission);
+    // let denom = state.accepted_tokens;
+    // let mut funds = Uint128::new(0);
+    // let mut info_denom="".to_string();
+    // let mut resp: Response<_>= Response::new();
+    // println!("chi è {:?}", owner);
+    
 
-    if funds < commission {
-        return Err(ContractError::InsufficientFunds { funds, commission });
-    }
 
-    if !commission.is_zero() && info_denom.len()>0 {
-        let funds: Vec<_> = coins(commission.u128(), info_denom);
+    // // Controlliamo se la denominazione è presente nell'array di token accettati
+    // for coin in info.funds.iter() {
+    //     if denom.contains(&coin.denom) {
+    //         funds = coin.amount;
+    //         info_denom = coin.denom.clone();
+    //     } else {
+    //         return Err(ContractError::UnsupportedToken {});
+    //     }
+    // }
 
-        let commission_msg = BankMsg::Send {
-            to_address: owner.into_string(),
-            amount: funds,
-        };
-        // resp = resp
-        //     .add_message(commission_msg)
-        //     .add_attribute("commission_payer", info.sender.as_str());
-    }
-    // create a proposal
-    let mut prop = Proposal {
-        title,
-        description,
-        expires,
-        option,
-        msgs,
-        status: ProposalStatus::Open,
-        votes: Votes::start(),
-        proposer: info.sender.clone(),
-    };
-    prop.update_status(&env.block); //TODO Check
-    let id = next_id(deps.storage)?;
-    PROPOSALS.save(deps.storage, id, &prop)?;
+    // println!("funds {:?}", funds);
+    // println!("info_denom {:?}", info_denom);
+    // if funds < commission {
+    //     return Err(ContractError::InsufficientFunds { funds, commission });
+    // }
 
-    Ok(Response::new()
-        .add_attribute("commission_payer", info.sender.as_str())
-        .add_attribute("action", "propose")
-        .add_attribute("sender", info.sender)
-        .add_attribute("proposal_id", id.to_string())
-        .add_attribute("status", format!("{:?}", prop.status)))
+    // // if !commission.is_zero() && info_denom.len()>0 {
+    // //     let funds: Vec<_> = coins(commission.u128(), info_denom);
+
+    // //     let commission_msg = BankMsg::Send {
+    // //         to_address: owner.into_string(),
+    // //         amount: funds,
+    // //     };
+    // //     // resp = resp
+    // //     //     .add_message(commission_msg)
+    // //     //     .add_attribute("commission_payer", info.sender.as_str());
+    // // }
+    // if !commission.is_zero() {
+    //     if info_denom.is_empty() {
+    //         return Err(ContractError::MissingAcceptedToken {});
+    //     }
+    //     let funds: Vec<_> = coins(commission.u128(), info_denom.clone());
+    //     let commission_msg = BankMsg::Send {
+    //         to_address: owner.into_string(),
+    //         amount: funds,
+    //     };
+    //     // let commission_coin = Coin {
+    //     //     amount: commission,
+    //     //     denom: info_denom.clone(),
+    //     // };
+    //     // let commission_msg = BankMsg::Send {
+    //     //     to_address: owner.into_string(),
+    //     //     amount: vec![commission_coin],
+    //     // };
+    //     resp = resp
+    //         .add_message(commission_msg)
+    //         .add_attribute("commission_payer", info.sender.as_str())    
+    // }
+    // // create a proposal 
+    // let mut prop = Proposal {
+    //     title,
+    //     description,
+    //     expires,
+    //     option,
+    //     msgs,
+    //     status: ProposalStatus::Open,
+    //     votes: Votes::start(),
+    //     proposer: info.sender.clone(),
+    // };
+    // prop.update_status(&env.block); //TODO Check
+    // let id = next_id(deps.storage)?;
+    // PROPOSALS.save(deps.storage, id, &prop)?;
+    // resp = resp
+    //     .add_attribute("action", "propose")
+    //     .add_attribute("sender", info.sender)
+    //     .add_attribute("proposal_id", id.to_string())
+    //     .add_attribute("status", format!("{:?}", prop.status));
+
+    // Ok(resp)
+     Ok(Response::new())
 }
 
 pub fn execute_update_voters(
