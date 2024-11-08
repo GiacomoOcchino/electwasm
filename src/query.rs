@@ -10,7 +10,7 @@ pub fn query_proposal(deps: Deps, env: Env, id: u64) -> StdResult<ProposalRespon
         id,
         title: prop.title,
         description: prop.description,
-        msgs: prop.msgs,
+        // msgs: prop.msgs,
         status,
         expires: prop.expires,
         // deposit: prop.deposit,

@@ -26,7 +26,7 @@ pub enum ExecuteMsg {
         description: String,
         option: Vec<String>,
         expires: Expiration,
-        msgs: Vec<CosmosMsg<Empty>>,
+        // msgs: Vec<CosmosMsg<Empty>>,
         // note: we ignore API-spec'd earliest if passed, always opens immediately
     },
 }
@@ -66,11 +66,11 @@ pub struct Voter {
 }
 
 #[cw_serde]
-pub struct ProposalResponse<T = Empty> {
+pub struct ProposalResponse {
     pub id: u64,
     pub title: String,
     pub description: String,
-    pub msgs: Vec<CosmosMsg<T>>,
+    // pub msgs: Vec<CosmosMsg<T>>,
     pub status: ProposalStatus,
     pub expires: Expiration,
     pub proposer: Addr,

@@ -73,7 +73,7 @@ pub struct Proposal {
     pub description: String,
     pub option: Vec<String>,
     pub expires: Expiration,
-    pub msgs: Vec<CosmosMsg<Empty>>,
+    // pub msgs: Vec<CosmosMsg<Empty>>,
     pub votes: Votes,
     pub status: ProposalStatus,
     pub proposer: Addr,
