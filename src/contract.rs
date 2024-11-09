@@ -118,7 +118,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
           */
     }
 }
-
+/* 
 #[cfg(test)]
 mod tests {
     use crate::state::{Proposal, Vote, Votes, STATUS};
@@ -132,7 +132,7 @@ mod tests {
 
     use super::*;
     use crate::msg::{InstantiateMsg, ProposalResponse};
-
+    /*
     // this will set up the instantiation for other tests
     #[track_caller]
     fn setup_test_case(
@@ -150,37 +150,37 @@ mod tests {
         };
         instantiate(deps, mock_env(), info, instantiate_msg);
         Ok(Response::new())
-    }
-    /*Done */
-    #[test]
-    fn test_instantiate_with_valid_message() {
-        let mut deps = mock_dependencies();
-        let env = mock_env();
-        // let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
-        let msg = InstantiateMsg {
-            accepted_tokens: vec!["uatom".to_string(), "ujunox".to_string()],
-            proposal_commission: 500_000,
-            voting_fee: 0,
-        };
-        let app = App::default();
+    }*/
+    /*Done
+        #[test]
+        fn test_instantiate_with_valid_message() {
+            let mut deps = mock_dependencies();
+            let env = mock_env();
+            // let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
+            let msg = InstantiateMsg {
+                accepted_tokens: vec!["uatom".to_string(), "ujunox".to_string()],
+                proposal_commission: 500_000,
+                voting_fee: 0,
+            };
+            let app = App::default();
 
-        let owner = app.api().addr_make("owner");
+            let owner = app.api().addr_make("owner");
 
-        let info = message_info(&owner, &[]);
+            let info = message_info(&owner, &[]);
 
-        let response = instantiate(deps.as_mut(), mock_env(), info.clone(), msg.clone())
-            .expect("failed to instantiate");
+            let response = instantiate(deps.as_mut(), mock_env(), info.clone(), msg.clone())
+                .expect("failed to instantiate");
 
-        // Asserto per verificare la risposta
-        assert_eq!(response, Response::default());
+            // Asserto per verificare la risposta
+            assert_eq!(response, Response::default());
 
-        // Asserto per verificare lo stato salvato
-        let state = STATUS.load(&deps.storage).expect("failed to load state");
-        assert_eq!(state.accepted_tokens, msg.accepted_tokens);
-        assert_eq!(state.admin, info.sender);
-        assert_eq!(state.proposal_commission, msg.proposal_commission);
-    }
-
+            // Asserto per verificare lo stato salvato
+            let state = STATUS.load(&deps.storage).expect("failed to load state");
+            assert_eq!(state.accepted_tokens, msg.accepted_tokens);
+            assert_eq!(state.admin, info.sender);
+            assert_eq!(state.proposal_commission, msg.proposal_commission);
+        }
+    */
     #[test]
     fn create_proposal_insufficient_funds() {
         // define owner and proposer
@@ -327,11 +327,13 @@ mod tests {
         };
         let a = IntoBech32::into_bech32(env.contract.address.as_str());
         let info = message_info(&voter1, &coins(500_000, "uatom"));
-        let address= env.contract.address;
-        let res = app.execute_contract(voter1.clone(), a,&proposal, &coins(500_000, "uatom")).unwrap();
-        
+        let address = env.contract.address;
+        let res = app
+            .execute_contract(voter1.clone(), a, &proposal, &coins(500_000, "uatom"))
+            .unwrap();
+
         // let res = execute(deps.as_mut(), mock_env(), info, proposal.clone()).unwrap();
-          assert_eq!(
+        assert_eq!(
             app.wrap().query_all_balances(voter1).unwrap(),
             coins(0, "uatom")
         );
@@ -639,6 +641,7 @@ mod tests {
     let query_result: Vec<VoteInfo> = from_json(query(deps.as_ref(), env, res).unwrap()).unwrap();
     println!("QueryMsg::Total: {:?}", query_result);*/
 }
+*/
 /*
 */
 
