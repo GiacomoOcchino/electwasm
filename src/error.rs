@@ -19,6 +19,8 @@ pub enum ContractError {
     NoVote {},
     #[error("Missing accept token")]
     MissingAcceptedToken {},
+    #[error("Missing payment")]
+    MissingPayment {},
     #[error("Proposal is NOT Open")]
     NotOpen {},
     #[error("Coin NOT Supported")]

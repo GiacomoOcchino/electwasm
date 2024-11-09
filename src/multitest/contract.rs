@@ -47,7 +47,7 @@ impl ElectwasmContract {
     }
 
     #[track_caller]
-    pub fn create_proposal_correct_funds(
+    pub fn create_proposal(
         &self,
         app: &mut App,
         sender: &Addr,

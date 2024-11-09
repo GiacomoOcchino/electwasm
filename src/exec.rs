@@ -1,5 +1,6 @@
 use cosmwasm_std::{
-    attr, coins, from_json, to_json_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Empty, Env, MessageInfo, Response, StdResult, SubMsg, Uint128
+    attr, coins, from_json, to_json_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Empty,
+    Env, MessageInfo, Response, StdResult, SubMsg, Uint128,
 };
 use cw_utils::Expiration;
 
@@ -15,90 +16,86 @@ pub fn execute_create_proposal(
     description: String,
     option: Vec<String>,
     expires: Expiration,
-    msgs: Vec<CosmosMsg>,
-    // we ignore earliest
 ) -> Result<Response<Empty>, ContractError> {
-    // let state = STATUS.load(deps.storage)?;
-    // let owner = state.admin;
-    // let commission = Uint128::new(state.proposal_commission);
-    // let denom = state.accepted_tokens;
-    // let mut funds = Uint128::new(0);
-    // let mut info_denom="".to_string();
-    // let mut resp: Response<_>= Response::new();
-    // println!("chi è {:?}", owner);
-    
+    let state = STATUS.load(deps.storage)?;
+    let owner = state.admin;
+    let commissions = state.commissions;
 
+    // Check if the proposer sent any funds
+    if info.funds.is_empty() {
+        return Err(ContractError::MissingPayment {});
+    }
 
-    // // Controlliamo se la denominazione è presente nell'array di token accettati
-    // for coin in info.funds.iter() {
-    //     if denom.contains(&coin.denom) {
-    //         funds = coin.amount;
-    //         info_denom = coin.denom.clone();
-    //     } else {
-    //         return Err(ContractError::UnsupportedToken {});
-    //     }
-    // }
+    println!("chi è {:?}", owner);
 
-    // println!("funds {:?}", funds);
-    // println!("info_denom {:?}", info_denom);
-    // if funds < commission {
-    //     return Err(ContractError::InsufficientFunds { funds, commission });
-    // }
+    // Find the matching commission for the provided funds
+    let mut matching_commission: Option<&Coin> = None;
+    let mut coin_sended = Uint128::new(0);
 
-    // // if !commission.is_zero() && info_denom.len()>0 {
-    // //     let funds: Vec<_> = coins(commission.u128(), info_denom);
+    for coin in info.funds.iter() {
+        for allowed_commission in commissions.iter() {
+            if coin.denom == allowed_commission.denom {
+                matching_commission = Some(allowed_commission);
+                // found_to_send = coin;
+                coin_sended = coin.amount;
+                break; // Early exit if a matching commission is found
+            }
+        }
+    }
+    // Handle cases where no matching commission is found
+    if matching_commission.is_none() {
+        return Err(ContractError::UnsupportedToken {});
+    }
+    let commission = matching_commission.unwrap();
+    let funds = coin_sended;
+    println!("funds {:?}", funds);
 
-    // //     let commission_msg = BankMsg::Send {
-    // //         to_address: owner.into_string(),
-    // //         amount: funds,
-    // //     };
-    // //     // resp = resp
-    // //     //     .add_message(commission_msg)
-    // //     //     .add_attribute("commission_payer", info.sender.as_str());
-    // // }
-    // if !commission.is_zero() {
-    //     if info_denom.is_empty() {
-    //         return Err(ContractError::MissingAcceptedToken {});
-    //     }
-    //     let funds: Vec<_> = coins(commission.u128(), info_denom.clone());
-    //     let commission_msg = BankMsg::Send {
-    //         to_address: owner.into_string(),
-    //         amount: funds,
-    //     };
-    //     // let commission_coin = Coin {
-    //     //     amount: commission,
-    //     //     denom: info_denom.clone(),
-    //     // };
-    //     // let commission_msg = BankMsg::Send {
-    //     //     to_address: owner.into_string(),
-    //     //     amount: vec![commission_coin],
-    //     // };
-    //     resp = resp
-    //         .add_message(commission_msg)
-    //         .add_attribute("commission_payer", info.sender.as_str())    
-    // }
-    // // create a proposal 
-    // let mut prop = Proposal {
-    //     title,
-    //     description,
-    //     expires,
-    //     option,
-    //     msgs,
-    //     status: ProposalStatus::Open,
-    //     votes: Votes::start(),
-    //     proposer: info.sender.clone(),
-    // };
-    // prop.update_status(&env.block); //TODO Check
-    // let id = next_id(deps.storage)?;
-    // PROPOSALS.save(deps.storage, id, &prop)?;
-    // resp = resp
-    //     .add_attribute("action", "propose")
-    //     .add_attribute("sender", info.sender)
-    //     .add_attribute("proposal_id", id.to_string())
-    //     .add_attribute("status", format!("{:?}", prop.status));
+    // Check if the sent funds are enough for the commission
+    if funds < commission.amount {
+        return Err(ContractError::InsufficientFunds {
+            funds,
+            commission: commission.amount,
+        });
+    }
 
-    // Ok(resp)
-     Ok(Response::new())
+    // Build the commission message
+    let commission_msg = BankMsg::Send {
+        to_address: owner.into_string(),
+        amount: vec![commission.clone()], // Use the matching coin from `info.funds`
+    };
+
+    let mut resp = Response::new()
+        .add_attribute("action", "propose")
+        .add_attribute("sender", info.sender.clone())
+        .add_attribute("status", format!("{:?}", ProposalStatus::Open));
+
+    // Add the commission message only if there's a commission
+    if !commission.amount.is_zero() {
+        resp = resp
+            .add_message(commission_msg)
+            .add_attribute("commission_payer", info.sender.clone());
+    }
+
+    // create a proposal
+    let mut prop = Proposal {
+        title,
+        description,
+        expires,
+        option,
+        status: ProposalStatus::Open,
+        votes: Votes::start(),
+        proposer: info.sender.clone(),
+    };
+    prop.update_status(&env.block); //TODO Check
+    let id = next_id(deps.storage)?;
+    PROPOSALS.save(deps.storage, id, &prop)?;
+    resp = resp
+        .add_attribute("action", "propose")
+        .add_attribute("sender", info.sender)
+        .add_attribute("proposal_id", id.to_string())
+        .add_attribute("status", format!("{:?}", prop.status));
+
+    Ok(resp)
 }
 
 pub fn execute_update_voters(
