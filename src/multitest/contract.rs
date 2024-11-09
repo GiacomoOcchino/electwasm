@@ -28,16 +28,14 @@ impl ElectwasmContract {
         code_id: u64,
         sender: &Addr,
         label: &str,
-        accepted_tokens: Vec<String>,
-        proposal_commission: u128,
+        commissions: Vec<Coin>,
         voting_fee: u64,
     ) -> StdResult<Self> {
         app.instantiate_contract(
             code_id,
             sender.clone(),
             &InstantiateMsg {
-                accepted_tokens,
-                proposal_commission,
+                commissions,
                 voting_fee,
             },
             &[],
