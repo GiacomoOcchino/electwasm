@@ -16,8 +16,7 @@ pub fn instantiate(
 ) -> Result<Response, ContractError> {
     let state = State {
         admin: info.sender,
-        accepted_tokens: msg.accepted_tokens,
-        proposal_commission: msg.proposal_commission,
+        commissions: msg.commissions,
         voting_fee: 0,
     };
 
@@ -66,7 +65,7 @@ pub fn execute(
             description,
             option,
             expires,
-            msgs,
+            // msgs,
         } => exec::execute_create_proposal(
             deps,
             env,
@@ -75,7 +74,7 @@ pub fn execute(
             description,
             option,
             expires,
-            msgs,
+            // msgs,
         ),
         Vote { vote, proposal_id } => exec::execute_vote(deps, env, info, vote, proposal_id),
         UpdateVoters {
@@ -127,7 +126,7 @@ mod tests {
     use cosmwasm_std::{
         coin, coins, from_json, Addr, BankMsg, CosmosMsg, Empty, Timestamp, Uint128,
     };
-    use cw_multi_test::App;
+    use cw_multi_test::{App, Executor, IntoAddr, IntoBech32};
     use cw_utils::Expiration;
     use std::collections::BTreeMap;
 
@@ -149,7 +148,8 @@ mod tests {
             proposal_commission,
             voting_fee,
         };
-        instantiate(deps, mock_env(), info, instantiate_msg)
+        instantiate(deps, mock_env(), info, instantiate_msg);
+        Ok(Response::new())
     }
     /*Done */
     #[test]
@@ -215,11 +215,11 @@ mod tests {
 
         /*Start create proposal */
 
-        let bank_msg = BankMsg::Send {
-            to_address: owner.into(),
-            amount: vec![coin(1, "ucosm")],
-        };
-        let msgs = vec![CosmosMsg::Bank(bank_msg)];
+        // let bank_msg = BankMsg::Send {
+        //     to_address: owner.into(),
+        //     amount: vec![coin(1, "ucosm")],
+        // };
+        // let msgs = vec![CosmosMsg::Bank(bank_msg)];
         let env = mock_env();
         let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
 
@@ -232,7 +232,7 @@ mod tests {
                 "Gricia".to_string(),
             ],
             expires: Expiration::AtTime(ts.plus_days(2)),
-            msgs: msgs,
+            // msgs: msgs,
         };
         // Not supported Token
         let info = message_info(&voter1, &coins(1_000, "ucosm"));
@@ -279,7 +279,7 @@ mod tests {
         let mut app = App::new(|router, _api, storage| {
             router
                 .bank
-                .init_balance(storage, &voter1, coins(0, "uatom"))
+                .init_balance(storage, &voter1, coins(500_000, "uatom"))
                 .unwrap();
         });
 
@@ -306,11 +306,11 @@ mod tests {
 
         /*Start create proposal */
 
-        let bank_msg = BankMsg::Send {
-            to_address: owner.clone().into(),
-            amount: vec![coin(1, "ucosm")],
-        };
-        let msgs = vec![CosmosMsg::Bank(bank_msg)];
+        // let bank_msg = BankMsg::Send {
+        //     to_address: owner.clone().into(),
+        //     amount: vec![coin(1, "ucosm")],
+        // };
+        // let msgs = vec![CosmosMsg::Bank(bank_msg)];
         let env = mock_env();
         let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
 
@@ -323,10 +323,14 @@ mod tests {
                 "Gricia".to_string(),
             ],
             expires: Expiration::AtTime(ts.plus_days(2)),
-            msgs: msgs,
+            // msgs: msgs,
         };
+        let a = IntoBech32::into_bech32(env.contract.address.as_str());
         let info = message_info(&voter1, &coins(500_000, "uatom"));
-        let res = execute(deps.as_mut(), mock_env(), info, proposal.clone()).unwrap();
+        let address= env.contract.address;
+        let res = app.execute_contract(voter1.clone(), a,&proposal, &coins(500_000, "uatom")).unwrap();
+        
+        // let res = execute(deps.as_mut(), mock_env(), info, proposal.clone()).unwrap();
           assert_eq!(
             app.wrap().query_all_balances(voter1).unwrap(),
             coins(0, "uatom")
@@ -388,7 +392,7 @@ mod tests {
             to_address: owner.into(),
             amount: vec![coin(1, "ucosm")],
         };
-        let msgs = vec![CosmosMsg::Bank(bank_msg)];
+        // let msgs = vec![CosmosMsg::Bank(bank_msg)];
         let env = mock_env();
         let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
 
@@ -401,7 +405,7 @@ mod tests {
                 "Gricia".to_string(),
             ],
             expires: Expiration::AtTime(ts.plus_days(2)),
-            msgs: msgs,
+            // msgs: msgs,
         };
         let info = message_info(&voter1, &[]);
 
@@ -434,7 +438,7 @@ mod tests {
             to_address: owner.to_string(),
             amount: vec![coin(1, "ucosm")],
         };
-        let msgs = vec![CosmosMsg::Bank(bank_msg)];
+        // let msgs = vec![CosmosMsg::Bank(bank_msg)];
         let env = mock_env();
         let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
 
@@ -447,7 +451,7 @@ mod tests {
                 "Gricia".to_string(),
             ],
             expires: Expiration::AtTime(ts.plus_days(2)),
-            msgs: msgs,
+            // msgs: msgs,
         };
         let res = execute(deps.as_mut(), mock_env(), info, proposal.clone()).unwrap();
 

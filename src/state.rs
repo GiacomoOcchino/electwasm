@@ -1,5 +1,7 @@
+use std::collections::BTreeMap;
+
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, BlockInfo, Coins, CosmosMsg, Empty, StdResult, Storage};
+use cosmwasm_std::{Addr, BlockInfo, Coin, CosmosMsg, Empty, StdResult, Storage};
 
 use cw_storage_plus::{Item, Map};
 use cw_utils::Expiration;
@@ -64,8 +66,8 @@ pub struct Ballot {
 
 pub const STATUS: Item<State> = Item::new("status");
 
-pub const BALLOTS: Map<(u64,&Addr), Vote> = Map::new("votes");
-pub const VOTERS: Map<(u64,&Addr), bool> = Map::new("voters");
+pub const BALLOTS: Map<(u64, &Addr), Vote> = Map::new("votes");
+pub const VOTERS: Map<(u64, &Addr), bool> = Map::new("voters");
 
 #[cw_serde]
 pub struct Proposal {
@@ -102,15 +104,14 @@ pub const PROPOSALS: Map<u64, Proposal> = Map::new("proposals");
 #[cw_serde]
 pub struct State {
     pub admin: Addr,
-    pub accepted_tokens: Vec<String>, // TODO da rimuovere
+    // pub accepted_tokens: Vec<String>, // TODO da rimuovere
     /* Tenere in considerazione */
     // pub accepted_tokens: Vec<Addr>,
     // pub accepted_tokens: BTreeMap<String, Addr>,
-    pub proposal_commission: u128, // TODO da rimuovere
-    //pub commissions: Coins, //TODO DA INSERIRE
-    pub voting_fee: u64, //Todo valutare a chi pagare la fee
+    // pub proposal_commission: u128, // TODO da rimuovere
+    pub commissions: Vec<Coin>,    //TODO DA INSERIRE
+    pub voting_fee: u64,           //Todo valutare a chi pagare la fee
 }
-
 
 pub const PROPOSAL_COUNT: Item<u64> = Item::new("proposal_count");
 

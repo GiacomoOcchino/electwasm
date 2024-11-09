@@ -1,12 +1,11 @@
 use crate::state::{Proposal, ProposalStatus, Vote, Votes};
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, CosmosMsg, Empty};
+use cosmwasm_std::{Addr, Coin, CosmosMsg, Empty};
 use cw_utils::Expiration;
 
 #[cw_serde]
 pub struct InstantiateMsg {
-    pub accepted_tokens: Vec<String>,
-    pub proposal_commission: u128,
+    pub commissions: Vec<Coin>,    //TODO DA INSERIRE
     pub voting_fee: u64,
 }
 
