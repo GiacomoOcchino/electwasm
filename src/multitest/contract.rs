@@ -1,5 +1,5 @@
-use cosmwasm_std::{Addr, Coin, StdResult, Uint128};
-use cw_multi_test::{App, ContractWrapper, Executor};
+use cosmwasm_std::{Addr, Coin, Empty, Response, StdResult, Uint128};
+use cw_multi_test::{App, AppResponse, ContractWrapper, Executor};
 
 use crate::{
     contract::{self, execute, instantiate, query},
@@ -53,9 +53,19 @@ impl ElectwasmContract {
         sender: &Addr,
         funds: &[Coin],
         proposal: ExecuteMsg,
-    ) -> Result<(), ContractError> {
+    ) -> Result<AppResponse, ContractError> {
         app.execute_contract(sender.clone(), self.0.clone(), &proposal, funds)
-            .map(|_| ())
+            .map_err(|err| err.downcast().unwrap())
+    }
+
+    #[track_caller]
+    pub fn voters_action(
+        &self,
+        app: &mut App,
+        sender: &Addr,
+        action: ExecuteMsg,
+    ) -> Result<AppResponse, ContractError> {
+        app.execute_contract(sender.clone(), self.0.clone(), &action, &[])
             .map_err(|err| err.downcast().unwrap())
     }
 }
