@@ -451,3 +451,107 @@ fn test_vote_request_from_owner() {
         .unwrap();
     println!("proposer value {:?}", proposal);
 }
+#[test]
+/* Voting Test */
+fn test_voting_unauthorized() {
+    /* Define utilities */
+    let app = App::default();
+    let owner = app.api().addr_make("owner");
+    let proposer1 = app.api().addr_make("proposer1");
+    let voter1 = app.api().addr_make("voter1");
+    let voter2 = app.api().addr_make("voter2");
+    let mut app = App::new(|router, _api, storage| {
+        router
+            .bank
+            .init_balance(storage, &proposer1, coins(600_000, UATOM))
+            .unwrap();
+    });
+
+    /* Start Instantiate */
+    let code_id = ElectwasmContract::store_code(&mut app);
+    let commissions = vec![
+        Coin {
+            denom: UATOM.to_string(),
+            amount: Uint128::new(500_000),
+        },
+        Coin {
+            denom: UJUNO.to_string(),
+            amount: Uint128::new(500_000),
+        },
+    ];
+    let contract = ElectwasmContract::instantiate(
+        &mut app,
+        code_id,
+        &owner,
+        "First Election",
+        commissions.clone(),
+        0,
+    )
+    .unwrap();
+
+    /* End Instantiate */
+
+    /* Start create a proposal */
+    let env = mock_env();
+    let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
+
+    let proposal = ExecuteMsg::Propose {
+        title: "Che pasta ti piace?".to_string(),
+        description: "Dicci la tua preferenza!".to_string(),
+        option: vec![
+            "Norma".to_string(),
+            "Carbonara".to_string(),
+            "Gricia".to_string(),
+        ],
+        expires: Expiration::AtTime(ts.plus_days(2)),
+    };
+    let resp = contract
+        .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
+        .unwrap();
+
+    // Estrai l'ID dagli attributi della risposta
+    let proposal_id = resp
+        .events
+        .iter()
+        .flat_map(|event| event.attributes.iter())
+        .find(|attr| attr.key == "proposal_id")
+        .expect("Proposal ID not found")
+        .value
+        .parse::<u64>()
+        .expect("Failed to parse proposal ID");
+
+    println!("Created proposal ID: {}", proposal_id);
+    /*End create proposal */
+
+    /* Start ask join to proposal */
+    let ask_action = ExecuteMsg::UpdateVoters {
+        ask: voter1.to_string(),
+        add: vec![],
+        proposal_id,
+    };
+
+    let resp = contract
+        .voters_action(&mut app, &voter1, ask_action)
+        .unwrap();
+    /* End ask join to proposal */
+
+    /* Start try to accept to proposal */
+
+    let add_action = ExecuteMsg::UpdateVoters {
+        ask: voter1.to_string(),
+        add: vec![voter2.to_string()],
+        proposal_id,
+    };
+
+    let response = contract
+        .voters_action(&mut app, &proposer1, add_action)
+        .unwrap();
+    /* Voter Added */
+
+    /* Start try voting */
+    let b_vote = ExecuteMsg::Vote { vote: Vote::B, proposal_id };
+    let err = contract
+        .vote_proposal(&mut app, &voter1, b_vote)
+        .unwrap_err();
+    assert_eq!(err, ContractError::Unauthorized {});
+}
