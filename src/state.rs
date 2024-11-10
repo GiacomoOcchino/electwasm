@@ -67,6 +67,7 @@ pub struct Ballot {
 pub const STATUS: Item<State> = Item::new("status");
 
 pub const BALLOTS: Map<(u64, &Addr), Vote> = Map::new("votes");
+/*Voters info Map<(ID proposal, voter address), can vote? true or false>*/
 pub const VOTERS: Map<(u64, &Addr), bool> = Map::new("voters");
 
 #[cw_serde]
@@ -98,7 +99,7 @@ impl Proposal {
         self.status = self.current_status(block);
     }
 }
-
+/*Proposal info Map<ID proposal, Proposal info>*/
 pub const PROPOSALS: Map<u64, Proposal> = Map::new("proposals");
 
 #[cw_serde]
@@ -109,8 +110,8 @@ pub struct State {
     // pub accepted_tokens: Vec<Addr>,
     // pub accepted_tokens: BTreeMap<String, Addr>,
     // pub proposal_commission: u128, // TODO da rimuovere
-    pub commissions: Vec<Coin>,    //TODO DA INSERIRE
-    pub voting_fee: u64,           //Todo valutare a chi pagare la fee
+    pub commissions: Vec<Coin>, //TODO DA INSERIRE
+    pub voting_fee: u64,        //Todo valutare a chi pagare la fee
 }
 
 pub const PROPOSAL_COUNT: Item<u64> = Item::new("proposal_count");

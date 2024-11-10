@@ -1,6 +1,6 @@
 use cosmwasm_std::{
     attr, coins, from_json, to_json_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Empty,
-    Env, MessageInfo, Response, StdResult, SubMsg, Uint128,
+    Env, MessageInfo, Response, StdResult, Storage, SubMsg, Uint128,
 };
 use cw_utils::Expiration;
 
@@ -217,4 +217,87 @@ pub fn execute_vote(
         }
     }
     // Check if voter already vote
+}
+
+pub fn execute_close(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    // sender: Addr,
+    proposal_id: u64,
+) -> Result<Response<Empty>, ContractError> {
+    //Check if propose exist
+    let mut prop = PROPOSALS.load(deps.storage, proposal_id)?;
+    prop.update_status(&env.block);
+
+    if prop.proposer != info.sender  {
+        return Err(ContractError::Unauthorized {})
+    }
+    //Check if is OPEN
+    // if ![ProposalStatus::Open].contains(&prop.status) {
+    //     return Err(ContractError::Expired {});
+    // }
+
+    if prop.expires.is_expired(&env.block) {
+        // let total_votes = prop.votes.total();
+        // let quorum = (total_votes as f64 * 0.6).ceil() as u64; // Esempio: quorum al 60%
+        //                                                        // Calcola il numero di partecipanti alla votazione
+        let participant_count = count_participants(deps.storage, proposal_id);
+
+        // Definisci la percentuale di quorum
+        let quorum_percentage: f64 = 0.6; // esempio: 60%
+
+        // Calcola il quorum richiesto come percentuale del numero di partecipanti
+        let quorum = (participant_count as f64 * quorum_percentage).ceil() as u64;
+
+        // Calcola il totale dei voti espressi
+        let total_votes = prop.votes.total();
+
+        if total_votes >= quorum {
+            let vote_counts = [
+                ("a", prop.votes.a),
+                ("b", prop.votes.b),
+                ("c", prop.votes.c),
+                ("d", prop.votes.d),
+            ];
+
+            // Trova l'opzione con il massimo numero di voti
+            let winner = vote_counts
+                .iter()
+                .max_by_key(|&(_, count)| count)
+                .map(|&(option, _)| option);
+
+            match winner {
+                Some(w) => {
+                    // Aggiorna lo stato della proposta e restituisci la risposta
+                    prop.status = ProposalStatus::Closed; // o altra logica di aggiornamento
+                    PROPOSALS.save(deps.storage, proposal_id, &prop)?;
+                    println!("winner {:?}", w);
+                    let response = Response::new()
+                        .add_attribute("action", "close_proposal")
+                        .add_attribute("status", "closed")
+                        .add_attribute("winner", w);
+
+                    Ok(response)
+                }
+                None => Err(ContractError::NoVote {}),
+            }
+        } else {
+            Err(ContractError::QuorumNotReached {})
+        }
+    } else {
+        Err(ContractError::NotExpired {})
+    }
+}
+
+pub fn count_participants(storage: &dyn Storage, proposal_id: u64) -> u64 {
+    let prefix = proposal_id;
+    VOTERS
+        .prefix(prefix)
+        .range(storage, None, None, cosmwasm_std::Order::Ascending)
+        .filter(|result| match result {
+            Ok((_, can_vote)) => *can_vote, // Considera solo quelli con `true`
+            Err(_) => false,
+        })
+        .count() as u64
 }

@@ -14,6 +14,8 @@ pub enum ContractError {
 
     #[error("Proposal voting period has expired")]
     Expired {},
+    #[error("Quorum not reached")]
+    QuorumNotReached {},
 
     #[error("No vote")]
     NoVote {},
@@ -21,8 +23,8 @@ pub enum ContractError {
     MissingAcceptedToken {},
     #[error("Missing payment")]
     MissingPayment {},
-    #[error("Proposal is NOT Open")]
-    NotOpen {},
+    #[error("Proposal is NOT Expired")]
+    NotExpired {},
     #[error("Coin NOT Supported")]
     UnsupportedToken {},
     #[error("Invalid: Amount of token sent ({funds}) are lower than commission ({commission})")]

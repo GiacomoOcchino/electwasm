@@ -78,4 +78,14 @@ impl ElectwasmContract {
         app.execute_contract(sender.clone(), self.0.clone(), &action, &[])
             .map_err(|err| err.downcast().unwrap())
     }
+    #[track_caller]
+    pub fn close_proposal(
+        &self,
+        app: &mut App,
+        sender: &Addr,
+        action: ExecuteMsg,
+    ) -> Result<AppResponse, ContractError> {
+        app.execute_contract(sender.clone(), self.0.clone(), &action, &[])
+            .map_err(|err| err.downcast().unwrap())
+    }
 }
