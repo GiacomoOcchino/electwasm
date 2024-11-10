@@ -20,6 +20,9 @@ pub enum ExecuteMsg {
         add: Vec<String>,
         proposal_id: u64,
     },
+    Close {
+        proposal_id: u64,
+    },
     Propose {
         title: String,
         description: String,
@@ -34,7 +37,6 @@ pub enum ExecuteMsg {
 pub struct VoteInfo {
     pub voter: String,
     pub vote: Vote,
-    // pub weight: u64,
 }
 #[cw_serde]
 pub struct VoteListResponse {
