@@ -100,7 +100,7 @@ pub fn execute_create_proposal(
 
 pub fn execute_update_voters(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     add: Vec<String>,
     ask: String,
@@ -115,10 +115,14 @@ pub fn execute_update_voters(
     ];
 
     //Check if propose exist
+    let mut prop = PROPOSALS.load(deps.storage, proposal_id)?;
+    prop.update_status(&env.block);
+    PROPOSALS.save(deps.storage, proposal_id, &prop)?;
     let prop = PROPOSALS.load(deps.storage, proposal_id)?;
+
     //Check if is OPEN
     if ![ProposalStatus::Open].contains(&prop.status) {
-        return Err(ContractError::NotOpen {});
+        return Err(ContractError::Expired {});
     }
 
     // make the local update
@@ -180,6 +184,7 @@ pub fn execute_vote(
 ) -> Result<Response<Empty>, ContractError> {
     //Check if propose exist
     let mut prop = PROPOSALS.load(deps.storage, proposal_id)?;
+    prop.update_status(&env.block);
     //Check if is OPEN
     if ![ProposalStatus::Open].contains(&prop.status) {
         return Err(ContractError::Expired {});
@@ -193,7 +198,7 @@ pub fn execute_vote(
                 None => Ok(vote.clone()),
             })?;
             prop.votes.add_vote(vote, 1);
-            prop.update_status(&env.block);
+            // prop.update_status(&env.block);
             PROPOSALS.save(deps.storage, proposal_id, &prop)?;
 
             Ok(Response::new()
