@@ -71,9 +71,8 @@ pub struct ProposalResponse {
     pub id: u64,
     pub title: String,
     pub description: String,
-    // pub msgs: Vec<CosmosMsg<T>>,
     pub status: ProposalStatus,
     pub expires: Expiration,
     pub proposer: Addr,
-    // pub deposit: Option<DepositInfo>,
+    pub options: Vec<String>,
 }

@@ -1,8 +1,8 @@
-use cosmwasm_std::{ Deps, StdError, StdResult,Env};
 use crate::{
-    msg::{ProposalResponse,VoteInfo,VoteResponse},
-    state::{BALLOTS,PROPOSALS,Votes}
+    msg::{ProposalResponse, VoteInfo, VoteResponse},
+    state::{Votes, BALLOTS, PROPOSALS},
 };
+use cosmwasm_std::{Deps, Env, StdError, StdResult};
 pub fn query_proposal(deps: Deps, env: Env, id: u64) -> StdResult<ProposalResponse> {
     let prop = PROPOSALS.load(deps.storage, id)?;
     let status = prop.current_status(&env.block);
@@ -10,12 +10,10 @@ pub fn query_proposal(deps: Deps, env: Env, id: u64) -> StdResult<ProposalRespon
         id,
         title: prop.title,
         description: prop.description,
-        // msgs: prop.msgs,
         status,
         expires: prop.expires,
-        // deposit: prop.deposit,
         proposer: prop.proposer,
-        // threshold,
+        options: prop.option,
     })
 }
 

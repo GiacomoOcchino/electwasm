@@ -88,4 +88,9 @@ impl ElectwasmContract {
         app.execute_contract(sender.clone(), self.0.clone(), &action, &[])
             .map_err(|err| err.downcast().unwrap())
     }
+
+    pub fn query_proposal_info(&self, app: &App, proposal_id: u64) -> StdResult<ProposalResponse> {
+        app.wrap()
+            .query_wasm_smart(self.0.clone(), &QueryMsg::Proposal { proposal_id })
+    }
 }
