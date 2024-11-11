@@ -12,6 +12,9 @@ pub enum ContractError {
     #[error("Already voted on this proposal")]
     AlreadyVoted {},
 
+    #[error("Invalid Winner")]
+    InvalidWinner {},
+
     #[error("Proposal voting period has expired")]
     Expired {},
     #[error("Quorum not reached")]
