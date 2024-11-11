@@ -85,6 +85,7 @@ pub fn execute_create_proposal(
         status: ProposalStatus::Open,
         votes: Votes::start(),
         proposer: info.sender.clone(),
+        winner: None,
     };
     prop.update_status(&env.block); //TODO Check
     let id = next_id(deps.storage)?;
@@ -223,62 +224,64 @@ pub fn execute_close(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    // sender: Addr,
     proposal_id: u64,
 ) -> Result<Response<Empty>, ContractError> {
-    //Check if propose exist
+    // Carica la proposta dallo storage
     let mut prop = PROPOSALS.load(deps.storage, proposal_id)?;
     prop.update_status(&env.block);
 
-    if prop.proposer != info.sender  {
-        return Err(ContractError::Unauthorized {})
+    // Solo il proposer pu
+    if prop.proposer != info.sender {
+        return Err(ContractError::Unauthorized {});
     }
-    //Check if is OPEN
-    // if ![ProposalStatus::Open].contains(&prop.status) {
-    //     return Err(ContractError::Expired {});
-    // }
 
+    // Controlla se la proposta è scaduta
     if prop.expires.is_expired(&env.block) {
-        // let total_votes = prop.votes.total();
-        // let quorum = (total_votes as f64 * 0.6).ceil() as u64; // Esempio: quorum al 60%
-        //                                                        // Calcola il numero di partecipanti alla votazione
+        // Conta il numero di partecipanti per il calcolo del quorum
         let participant_count = count_participants(deps.storage, proposal_id);
 
-        // Definisci la percentuale di quorum
-        let quorum_percentage: f64 = 0.6; // esempio: 60%
-
-        // Calcola il quorum richiesto come percentuale del numero di partecipanti
+        // Definisci la percentuale del quorum (esempio: 60%)
+        let quorum_percentage: f64 = 0.6;
         let quorum = (participant_count as f64 * quorum_percentage).ceil() as u64;
 
-        // Calcola il totale dei voti espressi
+        // Calcola il numero totale dei voti espressi
         let total_votes = prop.votes.total();
 
         if total_votes >= quorum {
+            // Mappatura degli indici dei voti con i conteggi corrispondenti
             let vote_counts = [
-                ("a", prop.votes.a),
-                ("b", prop.votes.b),
-                ("c", prop.votes.c),
-                ("d", prop.votes.d),
+                (0, prop.votes.a), 
+                (1, prop.votes.b), 
+                (2, prop.votes.c), 
+                (3, prop.votes.d), 
             ];
 
-            // Trova l'opzione con il massimo numero di voti
-            let winner = vote_counts
+            // Trova l'indice dell'opzione con il massimo numero di voti
+            let winner_index = vote_counts
                 .iter()
                 .max_by_key(|&(_, count)| count)
-                .map(|&(option, _)| option);
+                .map(|&(index, count)| if count > 0 { Some(index) } else { None })
+                .flatten();
 
-            match winner {
-                Some(w) => {
-                    // Aggiorna lo stato della proposta e restituisci la risposta
-                    prop.status = ProposalStatus::Closed; // o altra logica di aggiornamento
-                    PROPOSALS.save(deps.storage, proposal_id, &prop)?;
-                    println!("winner {:?}", w);
-                    let response = Response::new()
-                        .add_attribute("action", "close_proposal")
-                        .add_attribute("status", "closed")
-                        .add_attribute("winner", w);
+            match winner_index {
+                Some(index) => {
+                    // Verifica se l'indice è valido all'interno dell'array delle opzioni
+                    if let Some(winner_text) = prop.option.get(index) {
+                        // Aggiorna la proposta con il vincitore e salva
+                        prop.status = ProposalStatus::Closed;
+                        prop.winner = Some(winner_text.clone());
+                        PROPOSALS.save(deps.storage, proposal_id, &prop)?;
 
-                    Ok(response)
+                        // Costruisci la risposta con il testo dell'opzione vincente
+                        let response = Response::new()
+                            .add_attribute("action", "close_proposal")
+                            .add_attribute("status", "closed")
+                            .add_attribute("winner", winner_text);
+
+                        Ok(response)
+                    } else {
+                        Err(ContractError::InvalidWinner {})
+                    }
                 }
                 None => Err(ContractError::NoVote {}),
             }
