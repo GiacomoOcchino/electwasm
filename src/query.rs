@@ -1,5 +1,5 @@
 use crate::{
-    msg::{ProposalResponse, VoteInfo, VoteResponse},
+    msg::{ProposalResponse, ProposalResult, VoteInfo, VoteResponse},
     state::{Votes, BALLOTS, PROPOSALS},
 };
 use cosmwasm_std::{Deps, Env, StdError, StdResult};
@@ -17,18 +17,19 @@ pub fn query_proposal(deps: Deps, env: Env, id: u64) -> StdResult<ProposalRespon
     })
 }
 
-/*
-fn query_vote(deps: Deps, voter: String) -> StdResult<VoteResponse> {
-    let voter = deps.api.addr_validate(&voter)?;
-    let ballot = BALLOTS.may_load(deps.storage, &voter)?;
+pub fn query_proposal_result(deps: Deps, proposal_id: u64) -> StdResult<ProposalResult> {
+    // Carica la proposta dallo storage
+    let proposal = PROPOSALS.load(deps.storage, proposal_id)?;
+    // Costruisce la risposta della query
+    let result = ProposalResult {
+        title: proposal.title,
+        description: proposal.description,
+        winner: proposal.winner,
+    };
 
-    let vote = ballot.map(|b| VoteInfo {
-        voter: voter.into(),
-        vote: b,
-    });
-    Ok(VoteResponse { vote })
+    Ok(result)
 }
-*/
+
 pub fn query_vote(deps: Deps, voter: String, proposal_id: u64) -> StdResult<VoteResponse> {
     let voter = deps.api.addr_validate(&voter)?;
     let ballot = BALLOTS.may_load(deps.storage, (proposal_id, &voter))?;
@@ -47,7 +48,7 @@ pub fn query_vote(deps: Deps, voter: String, proposal_id: u64) -> StdResult<Vote
     Ok(VoteResponse { vote })
 }
 
-pub fn query_proposal_response(deps: Deps, proposal_id: u64) -> StdResult<Votes> {
+pub fn query_proposal_running_response(deps: Deps, proposal_id: u64) -> StdResult<Votes> {
     let prop = PROPOSALS.load(deps.storage, proposal_id)?;
     let votes = prop.votes;
     Ok(Votes {

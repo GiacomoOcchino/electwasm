@@ -43,15 +43,7 @@ pub fn execute(
             description,
             option,
             expires,
-        } => exec::execute_create_proposal(
-            deps,
-            env,
-            info,
-            title,
-            description,
-            option,
-            expires,
-        ),
+        } => exec::execute_create_proposal(deps, env, info, title, description, option, expires),
         Vote { vote, proposal_id } => exec::execute_vote(deps, env, info, vote, proposal_id),
         UpdateVoters {
             add,
@@ -70,28 +62,15 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             to_json_binary(&query::query_vote(deps, voter, proposal_id)?)
         }
         //DONE
-        QueryMsg::Total { proposal_id } => {
-            to_json_binary(&query::query_proposal_response(deps, proposal_id)?)
+        QueryMsg::Running { proposal_id } => {
+            to_json_binary(&query::query_proposal_running_response(deps, proposal_id)?)
+        }
+        QueryMsg::Winner { proposal_id } => {
+            to_json_binary(&query::query_proposal_result(deps, proposal_id)?)
         }
 
         QueryMsg::Proposal { proposal_id } => {
             to_json_binary(&query::query_proposal(deps, env, proposal_id)?)
-        } //TODO
-          /*
-          QueryMsg::GetAllVotes {proposal_id} => {
-
-              let mut all_votes: Vec<VoteInfo> = vec![];
-              BALLOTS
-                  .range(deps.storage, None, None, Order::Ascending)
-                  .for_each(|item| {
-                      let (voter, vote) = item.unwrap();
-                      all_votes.push(VoteInfo {
-                          voter: voter.to_string(),
-                          vote,
-                      });
-                  });
-              to_json_binary(&all_votes)
-          }
-          */
+        }
     }
 }

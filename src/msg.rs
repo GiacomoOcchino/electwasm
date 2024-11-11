@@ -53,9 +53,11 @@ pub enum QueryMsg {
     #[returns(VoteResponse)]
     Vote { voter: String, proposal_id: u64 },
     #[returns(Votes)]
-    Total { proposal_id: u64 },
+    Running { proposal_id: u64 },
     #[returns(ProposalResponse)]
     Proposal { proposal_id: u64 },
+    #[returns(ProposalResult)]
+    Winner { proposal_id: u64 },
     // #[returns(VoteListResponse)]
     // GetAllVotes { proposal_id: u64 },
 }
@@ -75,4 +77,11 @@ pub struct ProposalResponse {
     pub expires: Expiration,
     pub proposer: Addr,
     pub options: Vec<String>,
+}
+
+#[cw_serde]
+pub struct ProposalResult {
+    pub title: String,
+    pub description: String,
+    pub winner: Option<String>, // Vincitore o None se non c'è ancora un vincitore
 }
