@@ -4,9 +4,10 @@ use cw_multi_test::{App, AppResponse, ContractWrapper, Executor};
 use crate::{
     contract::{self, execute, instantiate, query},
     msg::{
-        ExecuteMsg, InstantiateMsg, ProposalResponse, QueryMsg, VoteInfo, VoteListResponse,
-        VoteResponse, Voter,
+        ExecuteMsg, InstantiateMsg, ProposalResponse, ProposalResult, QueryMsg, VoteInfo,
+        VoteListResponse, VoteResponse, Voter,
     },
+    state::Votes,
     ContractError,
 };
 
@@ -92,5 +93,13 @@ impl ElectwasmContract {
     pub fn query_proposal_info(&self, app: &App, proposal_id: u64) -> StdResult<ProposalResponse> {
         app.wrap()
             .query_wasm_smart(self.0.clone(), &QueryMsg::Proposal { proposal_id })
+    }
+    pub fn query_proposal_running_response(&self, app: &App, proposal_id: u64) -> StdResult<Votes> {
+        app.wrap()
+            .query_wasm_smart(self.0.clone(), &QueryMsg::Running { proposal_id })
+    }
+    pub fn query_proposal_winner(&self, app: &App, proposal_id: u64) -> StdResult<ProposalResult> {
+        app.wrap()
+            .query_wasm_smart(self.0.clone(), &QueryMsg::Winner { proposal_id })
     }
 }
