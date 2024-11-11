@@ -80,6 +80,7 @@ pub struct Proposal {
     pub votes: Votes,
     pub status: ProposalStatus,
     pub proposer: Addr,
+    pub winner: Option<String>
     // pub fee: Uint128,
 }
 impl Proposal {
