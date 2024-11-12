@@ -1,8 +1,37 @@
 use crate::{
-    msg::{ProposalResponse, ProposalResult, VoteInfo, VoteResponse},
+    msg::{ProposalIdsWithTitlesResponse, ProposalResponse, ProposalResult, ProposalsByProposerResponse, VoteInfo, VoteResponse},
     state::{Votes, BALLOTS, PROPOSALS},
 };
-use cosmwasm_std::{Deps, Env, StdError, StdResult};
+use cosmwasm_std::{Addr, Deps, Env, StdError, StdResult};
+
+pub fn query_all_proposal_ids_with_titles(deps: Deps) -> StdResult<ProposalIdsWithTitlesResponse> {
+    let proposals: Vec<(u64, String)> = PROPOSALS
+        .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
+        .map(|item| {
+            item.map(|(id, proposal)| (id, proposal.title.clone())) // Mappa ID e titolo
+        })
+        .collect::<StdResult<Vec<(u64, String)>>>()?;
+
+    let response = ProposalIdsWithTitlesResponse { proposals };
+    Ok(response)
+}
+pub fn query_proposals_by_proposer(deps: Deps, proposer: Addr) -> StdResult<ProposalsByProposerResponse> {
+    let mut proposals: Vec<(u64, String)> = Vec::new();
+
+    PROPOSALS
+        .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
+        .for_each(|item| {
+            if let Ok((id, proposal)) = item {
+                if proposal.proposer == proposer {
+                    proposals.push((id, proposal.title.clone()));
+                }
+            }
+        });
+
+    let response = ProposalsByProposerResponse { proposals };
+    Ok(response)
+}
+
 pub fn query_proposal(deps: Deps, env: Env, id: u64) -> StdResult<ProposalResponse> {
     let prop = PROPOSALS.load(deps.storage, id)?;
     let status = prop.current_status(&env.block);

@@ -58,6 +58,10 @@ pub enum QueryMsg {
     Proposal { proposal_id: u64 },
     #[returns(ProposalResult)]
     Winner { proposal_id: u64 },
+    #[returns(ProposalIdsWithTitlesResponse)]
+    AllProposalIds { },
+    #[returns(ProposalsByProposerResponse)]
+    ProposalByProposer { proposer:Addr },
     // #[returns(VoteListResponse)]
     // GetAllVotes { proposal_id: u64 },
 }
@@ -66,6 +70,16 @@ pub enum QueryMsg {
 pub struct Voter {
     pub addr: String,
     pub weight: u64,
+}
+
+#[cw_serde]
+pub struct ProposalIdsWithTitlesResponse {
+    pub proposals: Vec<(u64, String)>,
+}
+
+#[cw_serde]
+pub struct ProposalsByProposerResponse {
+    pub proposals: Vec<(u64, String)>, // ID e titolo delle proposte
 }
 
 #[cw_serde]
