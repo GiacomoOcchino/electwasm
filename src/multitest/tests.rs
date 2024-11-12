@@ -265,6 +265,83 @@ fn create_proposal_works() {
 }
 
 #[test]
+fn create_multiple_proposal() {
+    let app = App::default();
+    let owner = app.api().addr_make("owner"); // it won't works
+    let proposer1 = app.api().addr_make("proposer1"); // it won't works
+    let mut app = App::new(|router, _api, storage| {
+        router
+            .bank
+            .init_balance(storage, &proposer1, coins(1200_000, UATOM))
+            .unwrap();
+    });
+    let code_id = ElectwasmContract::store_code(&mut app);
+    let commissions = vec![
+        Coin {
+            denom: UATOM.to_string(),
+            amount: Uint128::new(500_000),
+        },
+        Coin {
+            denom: UJUNO.to_string(),
+            amount: Uint128::new(500_000),
+        },
+    ];
+    let contract = ElectwasmContract::instantiate(
+        &mut app,
+        code_id,
+        &owner,
+        "First Election",
+        commissions.clone(),
+        0,
+    )
+    .unwrap();
+
+    /* Try to create a proposal */
+    let env = mock_env();
+    let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
+
+    let proposal = ExecuteMsg::Propose {
+        title: "Che pasta ti piace?".to_string(),
+        description: "Dicci la tua preferenza!".to_string(),
+        option: vec![
+            "Norma".to_string(),
+            "Carbonara".to_string(),
+            "Gricia".to_string(),
+        ],
+        expires: Expiration::AtTime(ts.plus_days(2)),
+    };
+    let proposal_2 = ExecuteMsg::Propose {
+        title: "Ti piacciono i giochi?".to_string(),
+        description: "Dicci la tua preferenza!".to_string(),
+        option: vec![
+            "Si".to_string(),
+            "No".to_string(),
+            "Boh".to_string(),
+        ],
+        expires: Expiration::AtTime(ts.plus_days(2)),
+    };
+    let resp = contract
+        .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
+        .unwrap();
+    let resp = contract
+        .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal_2)
+        .unwrap();
+
+    assert_eq!(
+        app.wrap().query_all_balances(proposer1.clone()).unwrap(),
+        coins(200_000, "uatom")
+    );
+    // assert_eq!(
+    //     app.wrap().query_all_balances(proposer2.clone()).unwrap(),
+    //     coins(100_000, "uatom")
+    // );
+    assert_eq!(
+        app.wrap().query_all_balances(owner.clone()).unwrap(),
+        coins(1000_000, "uatom")
+    );
+}
+
+#[test]
 fn test_vote_request_unauthorized() {
     /* Define utilities */
     let app = App::default();
