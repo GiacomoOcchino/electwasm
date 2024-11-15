@@ -1,11 +1,10 @@
-use cosmwasm_std::{Addr, Coin, Empty, Response, StdResult, Uint128};
+use cosmwasm_std::{Addr, Coin, StdResult};
 use cw_multi_test::{App, AppResponse, ContractWrapper, Executor};
 
 use crate::{
-    contract::{self, execute, instantiate, query},
+    contract::{ execute, instantiate, query},
     msg::{
-        ExecuteMsg, InstantiateMsg, ProposalIdsWithTitlesResponse, ProposalResponse, ProposalResult,ProposalsByProposerResponse, QueryMsg, VoteInfo, VoteListResponse, VoteResponse, Voter
-    },
+        ExecuteMsg, InstantiateMsg, ProposalIdsWithTitlesResponse, ProposalResponse, ProposalResult,ProposalsByProposerResponse, QueryMsg },
     state::Votes,
     ContractError,
 };

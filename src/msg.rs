@@ -1,11 +1,11 @@
-use crate::state::{Proposal, ProposalStatus, Vote, Votes};
+use crate::state::{ProposalStatus, Vote, Votes};
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Addr, Coin, CosmosMsg, Empty};
+use cosmwasm_std::{Addr, Coin};
 use cw_utils::Expiration;
 
 #[cw_serde]
 pub struct InstantiateMsg {
-    pub commissions: Vec<Coin>,    //TODO DA INSERIRE
+    pub commissions: Vec<Coin>, //TODO DA INSERIRE
     pub voting_fee: u64,
 }
 
@@ -59,9 +59,9 @@ pub enum QueryMsg {
     #[returns(ProposalResult)]
     Winner { proposal_id: u64 },
     #[returns(ProposalIdsWithTitlesResponse)]
-    AllProposalIds { },
+    AllProposalIds {},
     #[returns(ProposalsByProposerResponse)]
-    ProposalByProposer { proposer:Addr },
+    ProposalByProposer { proposer: Addr },
     // #[returns(VoteListResponse)]
     // GetAllVotes { proposal_id: u64 },
 }

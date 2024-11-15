@@ -8,8 +8,8 @@ use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{State, STATUS};
 use crate::{exec, query};
 
-const CONTRACT_NAME:&str = env!("CARGO_PKG_NAME");
-const CONTRACT_VERSION:&str = env!("CARGO_PKG_VERSION");
+const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
+const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
@@ -28,12 +28,7 @@ pub fn instantiate(
 
     STATUS.save(deps.storage, &state)?;
 
-    //TODO Check
-    /* Imposta la fee iniziale, ad esempio prelevandola dai fondi del creatore
-    let fee = info.funds.get(&denom).cloned().unwrap_or_default();*/
     Ok(Response::default())
-    /*Ok(Response::new().add_attribute("message", "contract initialized"))
-     */
 }
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
@@ -63,11 +58,9 @@ pub fn execute(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        //DONE
         QueryMsg::Vote { voter, proposal_id } => {
             to_json_binary(&query::query_vote(deps, voter, proposal_id)?)
         }
-        //DONE
         QueryMsg::Running { proposal_id } => {
             to_json_binary(&query::query_proposal_running_response(deps, proposal_id)?)
         }

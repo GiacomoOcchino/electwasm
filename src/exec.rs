@@ -1,6 +1,6 @@
 use cosmwasm_std::{
-    attr, coins, from_json, to_json_binary, Addr, BankMsg, Coin, CosmosMsg, Deps, DepsMut, Empty,
-    Env, MessageInfo, Response, StdResult, Storage, SubMsg, Uint128,
+    attr, Addr, BankMsg, Coin, DepsMut, Empty, Env, MessageInfo, Response, StdResult, Storage,
+    Uint128,
 };
 use cw_utils::Expiration;
 
@@ -25,9 +25,6 @@ pub fn execute_create_proposal(
     if info.funds.is_empty() {
         return Err(ContractError::MissingPayment {});
     }
-
-    println!("chi è {:?}", owner);
-
     // Find the matching commission for the provided funds
     let mut matching_commission: Option<&Coin> = None;
     let mut coin_sended = Uint128::new(0);
@@ -48,7 +45,6 @@ pub fn execute_create_proposal(
     }
     let commission = matching_commission.unwrap();
     let funds = coin_sended;
-    println!("funds {:?}", funds);
 
     // Check if the sent funds are enough for the commission
     if funds < commission.amount {
@@ -250,10 +246,10 @@ pub fn execute_close(
         if total_votes >= quorum {
             // Mappatura degli indici dei voti con i conteggi corrispondenti
             let vote_counts = [
-                (0, prop.votes.a), 
-                (1, prop.votes.b), 
-                (2, prop.votes.c), 
-                (3, prop.votes.d), 
+                (0, prop.votes.a),
+                (1, prop.votes.b),
+                (2, prop.votes.c),
+                (3, prop.votes.d),
             ];
 
             // Trova l'indice dell'opzione con il massimo numero di voti

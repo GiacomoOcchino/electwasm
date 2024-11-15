@@ -22,8 +22,8 @@ pub enum ContractError {
 
     #[error("No vote")]
     NoVote {},
-    #[error("Missing accept token")]
-    MissingAcceptedToken {},
+    // #[error("Missing accept token")]
+    // MissingAcceptedToken {},
     #[error("Missing payment")]
     MissingPayment {},
     #[error("Proposal is NOT Expired")]

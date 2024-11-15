@@ -1,7 +1,5 @@
-use std::collections::BTreeMap;
-
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Addr, BlockInfo, Coin, CosmosMsg, Empty, StdResult, Storage};
+use cosmwasm_std::{Addr, BlockInfo, Coin, StdResult, Storage};
 
 use cw_storage_plus::{Item, Map};
 use cw_utils::Expiration;
@@ -80,8 +78,7 @@ pub struct Proposal {
     pub votes: Votes,
     pub status: ProposalStatus,
     pub proposer: Addr,
-    pub winner: Option<String>
-    // pub fee: Uint128,
+    pub winner: Option<String>, // pub fee: Uint128,
 }
 impl Proposal {
     pub fn current_status(&self, block: &BlockInfo) -> ProposalStatus {
@@ -106,11 +103,6 @@ pub const PROPOSALS: Map<u64, Proposal> = Map::new("proposals");
 #[cw_serde]
 pub struct State {
     pub admin: Addr,
-    // pub accepted_tokens: Vec<String>, // TODO da rimuovere
-    /* Tenere in considerazione */
-    // pub accepted_tokens: Vec<Addr>,
-    // pub accepted_tokens: BTreeMap<String, Addr>,
-    // pub proposal_commission: u128, // TODO da rimuovere
     pub commissions: Vec<Coin>, //TODO DA INSERIRE
     pub voting_fee: u64,        //Todo valutare a chi pagare la fee
 }

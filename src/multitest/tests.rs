@@ -3,8 +3,8 @@ use cw_multi_test::App;
 use cw_utils::Expiration;
 
 use crate::{
-    msg::{ExecuteMsg, ProposalResponse, QueryMsg},
-    state::{Proposal, State, Vote, Votes, BALLOTS, PROPOSALS, STATUS, VOTERS},
+    msg::ExecuteMsg,
+    state::{State, Vote, BALLOTS, STATUS, VOTERS},
     ContractError,
 };
 
@@ -1736,7 +1736,8 @@ fn query_proposal_by_proposer() {
             .bank
             .init_balance(storage, &proposer1, coins(1200_000, UATOM))
             .unwrap();
-        router.bank
+        router
+            .bank
             .init_balance(storage, &proposer2, coins(600_000, UATOM))
             .unwrap();
     });

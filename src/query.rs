@@ -47,9 +47,7 @@ pub fn query_proposal(deps: Deps, env: Env, id: u64) -> StdResult<ProposalRespon
 }
 
 pub fn query_proposal_result(deps: Deps, proposal_id: u64) -> StdResult<ProposalResult> {
-    // Carica la proposta dallo storage
     let proposal = PROPOSALS.load(deps.storage, proposal_id)?;
-    // Costruisce la risposta della query
     let result = ProposalResult {
         title: proposal.title,
         description: proposal.description,
