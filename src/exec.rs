@@ -278,7 +278,7 @@ pub fn execute_close(
     let mut prop = PROPOSALS.load(deps.storage, proposal_id)?;
     prop.update_status(&env.block);
 
-    // Solo il proposer pu
+    // Solo il proposer può chiudere la proposta
     if prop.proposer != info.sender {
         return Err(ContractError::Unauthorized {});
     }
@@ -304,34 +304,62 @@ pub fn execute_close(
                 (3, prop.votes.d),
             ];
 
-            // Trova l'indice dell'opzione con il massimo numero di voti
-            let winner_index = vote_counts
+            // Trova il massimo numero di voti
+            let max_votes = vote_counts
                 .iter()
-                .max_by_key(|&(_, count)| count)
-                .map(|&(index, count)| if count > 0 { Some(index) } else { None })
-                .flatten();
+                .map(|&(_, count)| count)
+                .max()
+                .unwrap_or(0);
 
-            match winner_index {
-                Some(index) => {
-                    // Verifica se l'indice è valido all'interno dell'array delle opzioni
-                    if let Some(winner_text) = prop.option.get(index) {
-                        // Aggiorna la proposta con il vincitore e salva
-                        prop.status = ProposalStatus::Closed;
-                        prop.winner = Some(winner_text.clone());
-                        PROPOSALS.save(deps.storage, proposal_id, &prop)?;
+            // Filtra le opzioni che hanno il numero massimo di voti
+            let winners: Vec<usize> = vote_counts
+                .iter()
+                .filter(|&&(_, count)| count == max_votes && max_votes > 0)
+                .map(|&(index, _)| index)
+                .collect();
 
-                        // Costruisci la risposta con il testo dell'opzione vincente
-                        let response = Response::new()
-                            .add_attribute("action", "close_proposal")
-                            .add_attribute("status", "closed")
-                            .add_attribute("winner", winner_text);
+            if winners.len() > 1 {
+                // Mappa gli indici alle opzioni con pareggio e concatenale
+                let tied_options: Vec<String> = winners
+                    .iter()
+                    .filter_map(|&index| prop.option.get(index))
+                    .cloned()
+                    .collect();
 
-                        Ok(response)
-                    } else {
-                        Err(ContractError::InvalidWinner {})
-                    }
+                let concatenated_tied_options = tied_options.join(", ");
+
+                // Aggiorna lo stato della proposta con il pareggio
+                prop.status = ProposalStatus::Closed;
+                prop.winner = Some(concatenated_tied_options.clone()); // Imposta il vincitore come stringa di pareggio
+                PROPOSALS.save(deps.storage, proposal_id, &prop)?;
+
+                // Costruisci la risposta con le opzioni a pari merito
+                let response = Response::new()
+                    .add_attribute("action", "close_proposal")
+                    .add_attribute("status", "closed")
+                    .add_attribute("winner", concatenated_tied_options);
+
+                return Ok(response);
+            } else if let Some(&winner_index) = winners.first() {
+                // Verifica se l'indice è valido all'interno dell'array delle opzioni
+                if let Some(winner_text) = prop.option.get(winner_index) {
+                    // Aggiorna la proposta con il vincitore e salva
+                    prop.status = ProposalStatus::Closed;
+                    prop.winner = Some(winner_text.clone());
+                    PROPOSALS.save(deps.storage, proposal_id, &prop)?;
+
+                    // Costruisci la risposta con il testo dell'opzione vincente
+                    let response = Response::new()
+                        .add_attribute("action", "close_proposal")
+                        .add_attribute("status", "closed")
+                        .add_attribute("winner", winner_text);
+
+                    Ok(response)
+                } else {
+                    Err(ContractError::InvalidWinner {})
                 }
-                None => Err(ContractError::NoVote {}),
+            } else {
+                Err(ContractError::NoVote {})
             }
         } else {
             Err(ContractError::QuorumNotReached {})
