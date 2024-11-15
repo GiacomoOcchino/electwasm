@@ -49,8 +49,9 @@ pub fn execute(
         UpdateVoters {
             add,
             ask,
+            rmv,
             proposal_id,
-        } => exec::execute_update_voters(deps, env, info, add, ask, proposal_id),
+        } => exec::execute_update_voters(deps, env, info, add, ask,rmv, proposal_id),
         Close { proposal_id } => exec::execute_close(deps, env, info, proposal_id),
     }
 }

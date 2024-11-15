@@ -101,6 +101,7 @@ pub fn execute_update_voters(
     info: MessageInfo,
     add: Vec<String>,
     ask: String,
+    rmv: Vec<String>,
     proposal_id: u64,
 ) -> Result<Response, ContractError> {
     let attributes = vec![
@@ -123,31 +124,82 @@ pub fn execute_update_voters(
     }
 
     // make the local update
-    update_voters(deps, info.sender, proposal_id, add, ask)?;
+    update_voters(deps, info.sender, proposal_id, add, ask, rmv)?;
     // call all registered hooks
 
     Ok(Response::new().add_attributes(attributes))
 }
 
 // the logic from execute_update_voters extracted for easier import
+// pub fn update_voters(
+//     deps: DepsMut,
+//     sender: Addr,
+//     proposal_id: u64,
+//     to_add: Vec<String>,
+//     to_ask: String,
+// ) -> Result<Response, ContractError> {
+//     // validate_unique_voters(&mut to_add)?;
+//     let to_add = to_add; // let go of mutability
+
+//     // ADMIN.assert_admin(deps.as_ref(), &sender)?;
+//     if !to_ask.is_empty() {
+//         let insert_addr = deps.api.addr_validate(&to_ask)?;
+
+//         VOTERS.save(deps.storage, (proposal_id, &insert_addr), &false)?;
+//     }
+//     if !to_add.is_empty() {
+//         //Reference to proposal
+//         let prop = PROPOSALS.load(deps.storage, proposal_id)?;
+//         if prop.proposer == sender {
+//             for voter in to_add {
+//                 let update_addr = deps.api.addr_validate(&voter)?;
+//                 VOTERS.update(
+//                     deps.storage,
+//                     (proposal_id, &update_addr),
+//                     |old| -> StdResult<_> {
+//                         Ok(match old {
+//                             Some(true) => true,  // Se è già true, lo lasciamo così
+//                             Some(false) => true, // Se è false, lo cambiamo in true
+//                             None => true,        // Se non esiste, lo inseriamo con valore true
+//                         })
+//                     },
+//                 )?;
+//             }
+//         } else {
+//             return Err(ContractError::Unauthorized {});
+//         }
+//     }
+
+//     Ok(Response::new())
+// }
+
 pub fn update_voters(
     deps: DepsMut,
     sender: Addr,
     proposal_id: u64,
     to_add: Vec<String>,
     to_ask: String,
+    to_remove: Vec<String>, // Nuovo parametro per rimuovere i votanti
 ) -> Result<Response, ContractError> {
-    // validate_unique_voters(&mut to_add)?;
-    let to_add = to_add; // let go of mutability
+    if !to_remove.is_empty() {
+        let prop = PROPOSALS.load(deps.storage, proposal_id)?;
+        if prop.proposer == sender {
+            for voter in to_remove {
+                let remove_addr = deps.api.addr_validate(&voter)?;
+                VOTERS.remove(deps.storage, (proposal_id, &remove_addr)); // Rimozione completa
+            }
+        } else {
+            return Err(ContractError::Unauthorized {});
+        }
+    }
 
-    // ADMIN.assert_admin(deps.as_ref(), &sender)?;
     if !to_ask.is_empty() {
         let insert_addr = deps.api.addr_validate(&to_ask)?;
 
         VOTERS.save(deps.storage, (proposal_id, &insert_addr), &false)?;
     }
+    // Resto della logica per aggiungere votanti
     if !to_add.is_empty() {
-        //Reference to proposal
         let prop = PROPOSALS.load(deps.storage, proposal_id)?;
         if prop.proposer == sender {
             for voter in to_add {
@@ -157,9 +209,9 @@ pub fn update_voters(
                     (proposal_id, &update_addr),
                     |old| -> StdResult<_> {
                         Ok(match old {
-                            Some(true) => true,  // Se è già true, lo lasciamo così
-                            Some(false) => true, // Se è false, lo cambiamo in true
-                            None => true,        // Se non esiste, lo inseriamo con valore true
+                            Some(true) => true,
+                            Some(false) => true,
+                            None => true,
                         })
                     },
                 )?;

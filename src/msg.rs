@@ -18,6 +18,7 @@ pub enum ExecuteMsg {
     UpdateVoters {
         ask: String,
         add: Vec<String>,
+        rmv: Vec<String>,
         proposal_id: u64,
     },
     Close {

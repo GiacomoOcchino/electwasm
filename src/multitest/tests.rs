@@ -414,6 +414,7 @@ fn test_vote_request_unauthorized() {
     let ask_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -427,6 +428,7 @@ fn test_vote_request_unauthorized() {
     let add_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![voter2.to_string()],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -511,6 +513,7 @@ fn test_vote_request_from_owner() {
     let ask_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -524,6 +527,7 @@ fn test_vote_request_from_owner() {
     let add_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![voter2.to_string()],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -612,6 +616,7 @@ fn test_voting_unauthorized() {
     let ask_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -625,6 +630,7 @@ fn test_voting_unauthorized() {
     let add_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![voter2.to_string()],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -718,6 +724,7 @@ fn test_simple_vote() {
     let ask_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -731,6 +738,7 @@ fn test_simple_vote() {
     let add_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![voter2.to_string()],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -828,6 +836,7 @@ fn test_double_vote() {
     let ask_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -841,6 +850,7 @@ fn test_double_vote() {
     let add_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![voter2.to_string()],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -948,6 +958,7 @@ fn test_vote_proposal_closed() {
     let ask_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -962,6 +973,7 @@ fn test_vote_proposal_closed() {
     let add_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![voter2.to_string()],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -990,6 +1002,360 @@ fn test_vote_proposal_closed() {
     /* Someone that is no the owner of the proposal can't accept */
     assert_eq!(err, ContractError::Expired {});
 }
+
+/* Removing test */
+
+#[test]
+fn test_remove_voters_from_proposal() {
+    /* Define utilities */
+    let app = App::default();
+    let owner = app.api().addr_make("owner");
+    let proposer1 = app.api().addr_make("proposer1");
+    let voter1 = app.api().addr_make("voter1");
+    let voter2 = app.api().addr_make("voter2");
+    let voter3 = app.api().addr_make("voter3");
+    let voter4 = app.api().addr_make("voter4");
+    let voter5 = app.api().addr_make("voter5");
+    let mut app = App::new(|router, _api, storage| {
+        router
+            .bank
+            .init_balance(storage, &proposer1, coins(600_000, UATOM))
+            .unwrap();
+    });
+
+    /* Start Instantiate */
+    let code_id = ElectwasmContract::store_code(&mut app);
+    let commissions = vec![
+        Coin {
+            denom: UATOM.to_string(),
+            amount: Uint128::new(500_000),
+        },
+        Coin {
+            denom: UJUNO.to_string(),
+            amount: Uint128::new(500_000),
+        },
+    ];
+    let contract = ElectwasmContract::instantiate(
+        &mut app,
+        code_id,
+        &owner,
+        "First Election",
+        commissions.clone(),
+        0,
+    )
+    .unwrap();
+
+    /* End Instantiate */
+
+    /* Start create a proposal */
+    let env = mock_env();
+    let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
+
+    let proposal = ExecuteMsg::Propose {
+        title: "Che pasta ti piace?".to_string(),
+        description: "Dicci la tua preferenza!".to_string(),
+        option: vec![
+            "Norma".to_string(),
+            "Carbonara".to_string(),
+            "Gricia".to_string(),
+        ],
+        expires: Expiration::AtTime(ts.plus_days(2)),
+    };
+    let resp = contract
+        .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
+        .unwrap();
+
+    // Estrai l'ID dagli attributi della risposta
+    let proposal_id = resp
+        .events
+        .iter()
+        .flat_map(|event| event.attributes.iter())
+        .find(|attr| attr.key == "proposal_id")
+        .expect("Proposal ID not found")
+        .value
+        .parse::<u64>()
+        .expect("Failed to parse proposal ID");
+
+    println!("Created proposal ID: {}", proposal_id);
+    /*End create proposal */
+    println!("Prima");
+    let query_response = contract
+        .query_proposal_running_response(&app, proposal_id)
+        .unwrap();
+    println!("{:?}", query_response);
+
+    /* Start ask join to proposal */
+    let ask_action = ExecuteMsg::UpdateVoters {
+        ask: voter1.to_string(),
+        add: vec![],
+        rmv: vec![],
+        proposal_id,
+    };
+
+    let resp = contract
+        .voters_action(&mut app, &voter1, ask_action)
+        .unwrap();
+    /* End ask join to proposal */
+
+    /* Start try to accept to proposal */
+
+    let add_action = ExecuteMsg::UpdateVoters {
+        ask: voter1.to_string(),
+        add: vec![
+            voter2.to_string(),
+            voter3.to_string(),
+            voter4.to_string(),
+            voter5.to_string(),
+        ],
+        rmv: vec![],
+        proposal_id,
+    };
+
+    let response = contract
+        .voters_action(&mut app, &proposer1, add_action)
+        .unwrap();
+    let query_response = contract.query_proposal_voters(&app, proposal_id).unwrap();
+    println!("{:?}", query_response);
+    /* Voter Added */
+
+    /* Start try voting */
+    let b_vote = ExecuteMsg::Vote {
+        vote: Vote::B,
+        proposal_id,
+    };
+    let a_vote = ExecuteMsg::Vote {
+        vote: Vote::A,
+        proposal_id,
+    };
+    let c_vote = ExecuteMsg::Vote {
+        vote: Vote::C,
+        proposal_id,
+    };
+    let d_vote = ExecuteMsg::Vote {
+        vote: Vote::D,
+        proposal_id,
+    };
+    contract
+        .vote_proposal(&mut app, &voter2, b_vote.clone())
+        .unwrap();
+    println!("Ha votato voter 2");
+    let query_response = contract
+        .query_proposal_running_response(&app, proposal_id)
+        .unwrap();
+    println!("{:?}", query_response);
+    contract
+        .vote_proposal(&mut app, &voter3, b_vote.clone())
+        .unwrap();
+    println!("Ha votato voter 3");
+    let query_response = contract
+        .query_proposal_running_response(&app, proposal_id)
+        .unwrap();
+    println!("{:?}", query_response);
+    contract.vote_proposal(&mut app, &voter4, b_vote).unwrap();
+    println!("Ha votato voter 4");
+    let query_response = contract
+        .query_proposal_running_response(&app, proposal_id)
+        .unwrap();
+    println!("{:?}", query_response);
+    contract.vote_proposal(&mut app, &voter5, a_vote).unwrap();
+    println!("Ha votato voter 5");
+    let query_response = contract
+        .query_proposal_running_response(&app, proposal_id)
+        .unwrap();
+    println!("{:?}", query_response);
+    
+    /* Start removing address to voters list */
+    let rmv_action = ExecuteMsg::UpdateVoters {
+        ask: "".to_string(),
+        add: vec![],
+        rmv: vec![voter5.to_string()],
+        proposal_id,
+    };
+
+    let resp = contract
+        .voters_action(&mut app, &proposer1, rmv_action)
+        .unwrap();
+    let query_response = contract.query_proposal_voters(&app, proposal_id).unwrap();
+    println!("{:?}", query_response);
+    /* End removing address to voters list */
+}
+#[test]
+fn test_remove_voters_from_proposal_unauthorized() {
+    /* Define utilities */
+    let app = App::default();
+    let owner = app.api().addr_make("owner");
+    let proposer1 = app.api().addr_make("proposer1");
+    let voter1 = app.api().addr_make("voter1");
+    let voter2 = app.api().addr_make("voter2");
+    let voter3 = app.api().addr_make("voter3");
+    let voter4 = app.api().addr_make("voter4");
+    let voter5 = app.api().addr_make("voter5");
+    let mut app = App::new(|router, _api, storage| {
+        router
+            .bank
+            .init_balance(storage, &proposer1, coins(600_000, UATOM))
+            .unwrap();
+    });
+
+    /* Start Instantiate */
+    let code_id = ElectwasmContract::store_code(&mut app);
+    let commissions = vec![
+        Coin {
+            denom: UATOM.to_string(),
+            amount: Uint128::new(500_000),
+        },
+        Coin {
+            denom: UJUNO.to_string(),
+            amount: Uint128::new(500_000),
+        },
+    ];
+    let contract = ElectwasmContract::instantiate(
+        &mut app,
+        code_id,
+        &owner,
+        "First Election",
+        commissions.clone(),
+        0,
+    )
+    .unwrap();
+
+    /* End Instantiate */
+
+    /* Start create a proposal */
+    let env = mock_env();
+    let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
+
+    let proposal = ExecuteMsg::Propose {
+        title: "Che pasta ti piace?".to_string(),
+        description: "Dicci la tua preferenza!".to_string(),
+        option: vec![
+            "Norma".to_string(),
+            "Carbonara".to_string(),
+            "Gricia".to_string(),
+        ],
+        expires: Expiration::AtTime(ts.plus_days(2)),
+    };
+    let resp = contract
+        .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
+        .unwrap();
+
+    // Estrai l'ID dagli attributi della risposta
+    let proposal_id = resp
+        .events
+        .iter()
+        .flat_map(|event| event.attributes.iter())
+        .find(|attr| attr.key == "proposal_id")
+        .expect("Proposal ID not found")
+        .value
+        .parse::<u64>()
+        .expect("Failed to parse proposal ID");
+
+    println!("Created proposal ID: {}", proposal_id);
+    /*End create proposal */
+    println!("Prima");
+    let query_response = contract
+        .query_proposal_running_response(&app, proposal_id)
+        .unwrap();
+    println!("{:?}", query_response);
+
+    /* Start ask join to proposal */
+    let ask_action = ExecuteMsg::UpdateVoters {
+        ask: voter1.to_string(),
+        add: vec![],
+        rmv: vec![],
+        proposal_id,
+    };
+
+    let resp = contract
+        .voters_action(&mut app, &voter1, ask_action)
+        .unwrap();
+    /* End ask join to proposal */
+
+    /* Start try to accept to proposal */
+
+    let add_action = ExecuteMsg::UpdateVoters {
+        ask: voter1.to_string(),
+        add: vec![
+            voter2.to_string(),
+            voter3.to_string(),
+            voter4.to_string(),
+            voter5.to_string(),
+        ],
+        rmv: vec![],
+        proposal_id,
+    };
+
+    let response = contract
+        .voters_action(&mut app, &proposer1, add_action)
+        .unwrap();
+    let query_response = contract.query_proposal_voters(&app, proposal_id).unwrap();
+    println!("{:?}", query_response);
+    /* Voter Added */
+
+    /* Start try voting */
+    let b_vote = ExecuteMsg::Vote {
+        vote: Vote::B,
+        proposal_id,
+    };
+    let a_vote = ExecuteMsg::Vote {
+        vote: Vote::A,
+        proposal_id,
+    };
+    let c_vote = ExecuteMsg::Vote {
+        vote: Vote::C,
+        proposal_id,
+    };
+    let d_vote = ExecuteMsg::Vote {
+        vote: Vote::D,
+        proposal_id,
+    };
+    contract
+        .vote_proposal(&mut app, &voter2, b_vote.clone())
+        .unwrap();
+    println!("Ha votato voter 2");
+    let query_response = contract
+        .query_proposal_running_response(&app, proposal_id)
+        .unwrap();
+    println!("{:?}", query_response);
+    contract
+        .vote_proposal(&mut app, &voter3, b_vote.clone())
+        .unwrap();
+    println!("Ha votato voter 3");
+    let query_response = contract
+        .query_proposal_running_response(&app, proposal_id)
+        .unwrap();
+    println!("{:?}", query_response);
+    contract.vote_proposal(&mut app, &voter4, b_vote).unwrap();
+    println!("Ha votato voter 4");
+    let query_response = contract
+        .query_proposal_running_response(&app, proposal_id)
+        .unwrap();
+    println!("{:?}", query_response);
+    contract.vote_proposal(&mut app, &voter5, a_vote).unwrap();
+    println!("Ha votato voter 5");
+    let query_response = contract
+        .query_proposal_running_response(&app, proposal_id)
+        .unwrap();
+    println!("{:?}", query_response);
+    
+    /* Start removing address to voters list */
+    let rmv_action = ExecuteMsg::UpdateVoters {
+        ask: "".to_string(),
+        add: vec![],
+        rmv: vec![voter5.to_string()],
+        proposal_id,
+    };
+
+    let err = contract
+        .voters_action(&mut app, &voter1, rmv_action)
+        .unwrap_err();
+    assert_eq!(err, ContractError::Unauthorized {});
+    let query_response = contract.query_proposal_voters(&app, proposal_id).unwrap();
+    println!("{:?}", query_response);
+    /* End removing address to voters list */
+}
+
+
 
 /* Closing Test */
 
@@ -1068,6 +1434,7 @@ fn test_close_proposal_unauthorized() {
     let ask_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -1081,6 +1448,7 @@ fn test_close_proposal_unauthorized() {
     let add_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![voter2.to_string()],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -1189,6 +1557,7 @@ fn test_close_proposal() {
     let ask_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -1202,6 +1571,7 @@ fn test_close_proposal() {
     let add_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![voter2.to_string()],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -1397,6 +1767,7 @@ fn test_query_proposal_running_response() {
     let ask_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -1415,6 +1786,7 @@ fn test_query_proposal_running_response() {
             voter4.to_string(),
             voter5.to_string(),
         ],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -1566,6 +1938,7 @@ fn test_query_proposal_winner() {
     let ask_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -1584,6 +1957,7 @@ fn test_query_proposal_winner() {
             voter4.to_string(),
             voter5.to_string(),
         ],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -1893,6 +2267,7 @@ fn query_proposal_voters() {
     let ask_action = ExecuteMsg::UpdateVoters {
         ask: voter1.to_string(),
         add: vec![],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -1911,6 +2286,7 @@ fn query_proposal_voters() {
             voter4.to_string(),
             voter5.to_string(),
         ],
+        rmv: vec![],
         proposal_id,
     };
 
@@ -1923,6 +2299,7 @@ fn query_proposal_voters() {
     let add_action = ExecuteMsg::UpdateVoters {
         ask: "".to_string(),
         add: vec![voter1.to_string()],
+        rmv: vec![],
         proposal_id,
     };
 
