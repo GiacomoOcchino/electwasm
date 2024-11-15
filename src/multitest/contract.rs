@@ -2,9 +2,11 @@ use cosmwasm_std::{Addr, Coin, StdResult};
 use cw_multi_test::{App, AppResponse, ContractWrapper, Executor};
 
 use crate::{
-    contract::{ execute, instantiate, query},
+    contract::{execute, instantiate, query},
     msg::{
-        ExecuteMsg, InstantiateMsg, ProposalIdsWithTitlesResponse, ProposalResponse, ProposalResult,ProposalsByProposerResponse, QueryMsg },
+        ExecuteMsg, InstantiateMsg, ProposalIdsWithTitlesResponse, ProposalResponse,
+        ProposalResult, ProposalsByProposerResponse, QueryMsg, VotersResponse,
+    },
     state::Votes,
     ContractError,
 };
@@ -100,11 +102,19 @@ impl ElectwasmContract {
         app.wrap()
             .query_wasm_smart(self.0.clone(), &QueryMsg::Winner { proposal_id })
     }
+    pub fn query_proposal_voters(&self, app: &App, proposal_id: u64) -> StdResult<VotersResponse> {
+        app.wrap()
+            .query_wasm_smart(self.0.clone(), &QueryMsg::Voters { proposal_id })
+    }
     pub fn query_all_proposal(&self, app: &App) -> StdResult<ProposalIdsWithTitlesResponse> {
         app.wrap()
-            .query_wasm_smart(self.0.clone(), &QueryMsg::AllProposalIds { })
+            .query_wasm_smart(self.0.clone(), &QueryMsg::AllProposalIds {})
     }
-    pub fn query_proposal_by_proposer(&self, app: &App, proposer: Addr) -> StdResult<ProposalsByProposerResponse> {
+    pub fn query_proposal_by_proposer(
+        &self,
+        app: &App,
+        proposer: Addr,
+    ) -> StdResult<ProposalsByProposerResponse> {
         app.wrap()
             .query_wasm_smart(self.0.clone(), &QueryMsg::ProposalByProposer { proposer })
     }

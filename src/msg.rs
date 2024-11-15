@@ -58,6 +58,8 @@ pub enum QueryMsg {
     Proposal { proposal_id: u64 },
     #[returns(ProposalResult)]
     Winner { proposal_id: u64 },
+    #[returns(VotersResponse)]
+    Voters { proposal_id: u64 },
     #[returns(ProposalIdsWithTitlesResponse)]
     AllProposalIds {},
     #[returns(ProposalsByProposerResponse)]
@@ -98,4 +100,10 @@ pub struct ProposalResult {
     pub title: String,
     pub description: String,
     pub winner: Option<String>, // Vincitore o None se non c'è ancora un vincitore
+}
+
+#[cw_serde]
+pub struct VotersResponse {
+    pub allowed_voters: Vec<Addr>,
+    pub pending_voters: Vec<Addr>,
 }
