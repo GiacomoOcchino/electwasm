@@ -12,7 +12,7 @@ pub struct InstantiateMsg {
 #[cw_serde]
 pub enum ExecuteMsg {
     Vote {
-        vote: Vote,
+        vote: usize,
         proposal_id: u64,
     },
     UpdateVoters {
@@ -37,7 +37,7 @@ pub enum ExecuteMsg {
 #[cw_serde]
 pub struct VoteInfo {
     pub voter: String,
-    pub vote: Vote,
+    pub vote: usize,
 }
 #[cw_serde]
 pub struct VoteListResponse {

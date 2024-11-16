@@ -4,9 +4,8 @@ use crate::{
         ProposalsByProposerResponse, VoteInfo, VoteResponse, VotersResponse,
     },
     state::{Votes, BALLOTS, PROPOSALS, VOTERS},
-    ContractError,
 };
-use cosmwasm_std::{Addr, Deps, Env, MessageInfo, StdError, StdResult};
+use cosmwasm_std::{Addr, Deps, Env, StdError, StdResult};
 
 pub fn query_all_proposal_ids_with_titles(deps: Deps) -> StdResult<ProposalIdsWithTitlesResponse> {
     let proposals: Vec<(u64, String)> = PROPOSALS
@@ -69,9 +68,9 @@ pub fn query_vote(deps: Deps, voter: String, proposal_id: u64) -> StdResult<Vote
     let ballot = BALLOTS.may_load(deps.storage, (proposal_id, &voter))?;
 
     let vote = match ballot {
-        Some(b) => VoteInfo {
+        Some(option_index) => VoteInfo {
             voter: voter.into(),
-            vote: b,
+            vote: option_index,
         },
         None => {
             // Gestisci il caso in cui il voto non è stato trovato
@@ -84,13 +83,18 @@ pub fn query_vote(deps: Deps, voter: String, proposal_id: u64) -> StdResult<Vote
 
 pub fn query_proposal_running_response(deps: Deps, proposal_id: u64) -> StdResult<Votes> {
     let prop = PROPOSALS.load(deps.storage, proposal_id)?;
-    let votes = prop.votes;
-    Ok(Votes {
-        a: votes.a,
-        b: votes.b,
-        c: votes.c,
-        d: votes.d,
-    })
+    // let votes = prop.votes;
+    // Ok(Votes {
+    //     a: votes.a,
+    //     b: votes.b,
+    //     c: votes.c,
+    //     d: votes.d,
+    // })
+    // Crea una risposta contenente i voti
+    let votes_response = Votes {
+        votes: prop.votes.votes.clone(), // Clona la mappa dei voti
+    };
+    Ok(votes_response)
 }
 
 pub fn query_voters(deps: Deps, _env: Env, proposal_id: u64) -> StdResult<VotersResponse> {

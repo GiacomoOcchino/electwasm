@@ -21,6 +21,17 @@ pub fn execute_create_proposal(
     let owner = state.admin;
     let commissions = state.commissions;
 
+    if option.is_empty() {
+        return Err(ContractError::NoOptionsProvided {});
+    }
+    /*
+    TODO: We need it?
+    const MAX_OPTIONS: usize = 10;
+
+    if option.len() > MAX_OPTIONS {
+        return Err(ContractError::TooManyOptions {});
+    }*/
+
     // Check if the proposer sent any funds
     if info.funds.is_empty() {
         return Err(ContractError::MissingPayment {});
@@ -71,7 +82,8 @@ pub fn execute_create_proposal(
             .add_message(commission_msg)
             .add_attribute("commission_payer", info.sender.clone());
     }
-
+    let num_options = option.len();
+    let votes = Votes::start(num_options);
     // create a proposal
     let mut prop = Proposal {
         title,
@@ -79,7 +91,7 @@ pub fn execute_create_proposal(
         expires,
         option,
         status: ProposalStatus::Open,
-        votes: Votes::start(),
+        votes,
         proposer: info.sender.clone(),
         winner: None,
     };
@@ -228,25 +240,33 @@ pub fn execute_vote(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-    vote: Vote,
+     vote: usize,
     proposal_id: u64,
 ) -> Result<Response<Empty>, ContractError> {
     //Check if propose exist
     let mut prop = PROPOSALS.load(deps.storage, proposal_id)?;
     prop.update_status(&env.block);
+
     //Check if is OPEN
     if ![ProposalStatus::Open].contains(&prop.status) {
         return Err(ContractError::Expired {});
     }
+
     let voter = VOTERS.may_load(deps.storage, (proposal_id, &info.sender))?;
     match voter {
         Some(true) => {
             // L'utente può votare
-            BALLOTS.update(deps.storage, (proposal_id, &info.sender), |bal| match bal {
-                Some(_) => Err(ContractError::AlreadyVoted {}),
-                None => Ok(vote.clone()),
+            BALLOTS.update(deps.storage, (proposal_id, &info.sender), |existing_vote| {
+                match existing_vote {
+                    Some(_) => Err(ContractError::AlreadyVoted {}),
+                    None => Ok( vote),
+                }
             })?;
-            prop.votes.add_vote(vote, 1);
+            // Verifica che l'indice dell'opzione sia valido
+            if  vote >= prop.option.len() {
+                return Err(ContractError::InvalidOption {});
+            }
+            prop.votes.add_vote( vote, 1);
             // prop.update_status(&env.block);
             PROPOSALS.save(deps.storage, proposal_id, &prop)?;
 
@@ -267,6 +287,49 @@ pub fn execute_vote(
     }
     // Check if voter already vote
 }
+// pub fn execute_vote(
+//     deps: DepsMut,
+//     env: Env,
+//     info: MessageInfo,
+//     vote: Vote,
+//     proposal_id: u64,
+// ) -> Result<Response<Empty>, ContractError> {
+//     //Check if propose exist
+//     let mut prop = PROPOSALS.load(deps.storage, proposal_id)?;
+//     prop.update_status(&env.block);
+//     //Check if is OPEN
+//     if ![ProposalStatus::Open].contains(&prop.status) {
+//         return Err(ContractError::Expired {});
+//     }
+//     let voter = VOTERS.may_load(deps.storage, (proposal_id, &info.sender))?;
+//     match voter {
+//         Some(true) => {
+//             // L'utente può votare
+//             BALLOTS.update(deps.storage, (proposal_id, &info.sender), |bal| match bal {
+//                 Some(_) => Err(ContractError::AlreadyVoted {}),
+//                 None => Ok(vote.clone()),
+//             })?;
+//             prop.votes.add_vote(vote, 1);
+//             // prop.update_status(&env.block);
+//             PROPOSALS.save(deps.storage, proposal_id, &prop)?;
+
+//             Ok(Response::new()
+//                 .add_attribute("action", "vote")
+//                 .add_attribute("sender", info.sender)
+//                 .add_attribute("proposal_id", proposal_id.to_string())
+//                 .add_attribute("status", format!("{:?}", prop.status)))
+//         }
+//         Some(false) => {
+//             // L'utente non può votare
+//             return Err(ContractError::Unauthorized {});
+//         }
+//         None => {
+//             // L'utente non è stato trovato
+//             Err(ContractError::Unauthorized {})
+//         }
+//     }
+//     // Check if voter already vote
+// }
 
 pub fn execute_close(
     deps: DepsMut,
@@ -296,27 +359,16 @@ pub fn execute_close(
         let total_votes = prop.votes.total();
 
         if total_votes >= quorum {
-            // Mappatura degli indici dei voti con i conteggi corrispondenti
-            let vote_counts = [
-                (0, prop.votes.a),
-                (1, prop.votes.b),
-                (2, prop.votes.c),
-                (3, prop.votes.d),
-            ];
-
             // Trova il massimo numero di voti
-            let max_votes = vote_counts
-                .iter()
-                .map(|&(_, count)| count)
-                .max()
-                .unwrap_or(0);
+            let max_votes = prop.votes.votes.values().cloned().max().unwrap_or(0);
 
-            // Filtra le opzioni che hanno il numero massimo di voti
-            let winners: Vec<usize> = vote_counts
-                .iter()
-                .filter(|&&(_, count)| count == max_votes && max_votes > 0)
-                .map(|&(index, _)| index)
-                .collect();
+             // Filtra le opzioni che hanno il numero massimo di voti
+             let winners: Vec<usize> = prop.votes.votes
+             .iter()
+             .filter(|&(_, &count)| count == max_votes && max_votes > 0)
+             .map(|(&index, _)| index)
+             .collect();
+
 
             if winners.len() > 1 {
                 // Mappa gli indici alle opzioni con pareggio e concatenale
@@ -368,6 +420,107 @@ pub fn execute_close(
         Err(ContractError::NotExpired {})
     }
 }
+
+// pub fn execute_close(
+//     deps: DepsMut,
+//     env: Env,
+//     info: MessageInfo,
+//     proposal_id: u64,
+// ) -> Result<Response<Empty>, ContractError> {
+//     // Carica la proposta dallo storage
+//     let mut prop = PROPOSALS.load(deps.storage, proposal_id)?;
+//     prop.update_status(&env.block);
+
+//     // Solo il proposer può chiudere la proposta
+//     if prop.proposer != info.sender {
+//         return Err(ContractError::Unauthorized {});
+//     }
+
+//     // Controlla se la proposta è scaduta
+//     if prop.expires.is_expired(&env.block) {
+//         // Conta il numero di partecipanti per il calcolo del quorum
+//         let participant_count = count_participants(deps.storage, proposal_id);
+
+//         // Definisci la percentuale del quorum (esempio: 60%)
+//         let quorum_percentage: f64 = 0.6;
+//         let quorum = (participant_count as f64 * quorum_percentage).ceil() as u64;
+
+//         // Calcola il numero totale dei voti espressi
+//         let total_votes = prop.votes.total();
+
+//         if total_votes >= quorum {
+//             // Mappatura degli indici dei voti con i conteggi corrispondenti
+//             let vote_counts = [
+//                 (0, prop.votes.a),
+//                 (1, prop.votes.b),
+//                 (2, prop.votes.c),
+//                 (3, prop.votes.d),
+//             ];
+
+//             // Trova il massimo numero di voti
+//             let max_votes = vote_counts
+//                 .iter()
+//                 .map(|&(_, count)| count)
+//                 .max()
+//                 .unwrap_or(0);
+
+//             // Filtra le opzioni che hanno il numero massimo di voti
+//             let winners: Vec<usize> = vote_counts
+//                 .iter()
+//                 .filter(|&&(_, count)| count == max_votes && max_votes > 0)
+//                 .map(|&(index, _)| index)
+//                 .collect();
+
+//             if winners.len() > 1 {
+//                 // Mappa gli indici alle opzioni con pareggio e concatenale
+//                 let tied_options: Vec<String> = winners
+//                     .iter()
+//                     .filter_map(|&index| prop.option.get(index))
+//                     .cloned()
+//                     .collect();
+
+//                 let concatenated_tied_options = tied_options.join(", ");
+
+//                 // Aggiorna lo stato della proposta con il pareggio
+//                 prop.status = ProposalStatus::Closed;
+//                 prop.winner = Some(concatenated_tied_options.clone()); // Imposta il vincitore come stringa di pareggio
+//                 PROPOSALS.save(deps.storage, proposal_id, &prop)?;
+
+//                 // Costruisci la risposta con le opzioni a pari merito
+//                 let response = Response::new()
+//                     .add_attribute("action", "close_proposal")
+//                     .add_attribute("status", "closed")
+//                     .add_attribute("winner", concatenated_tied_options);
+
+//                 return Ok(response);
+//             } else if let Some(&winner_index) = winners.first() {
+//                 // Verifica se l'indice è valido all'interno dell'array delle opzioni
+//                 if let Some(winner_text) = prop.option.get(winner_index) {
+//                     // Aggiorna la proposta con il vincitore e salva
+//                     prop.status = ProposalStatus::Closed;
+//                     prop.winner = Some(winner_text.clone());
+//                     PROPOSALS.save(deps.storage, proposal_id, &prop)?;
+
+//                     // Costruisci la risposta con il testo dell'opzione vincente
+//                     let response = Response::new()
+//                         .add_attribute("action", "close_proposal")
+//                         .add_attribute("status", "closed")
+//                         .add_attribute("winner", winner_text);
+
+//                     Ok(response)
+//                 } else {
+//                     Err(ContractError::InvalidWinner {})
+//                 }
+//             } else {
+//                 Err(ContractError::NoVote {})
+//             }
+//         } else {
+//             Err(ContractError::QuorumNotReached {})
+//         }
+//     } else {
+//         Err(ContractError::NotExpired {})
+//     }
+// }
 
 pub fn count_participants(storage: &dyn Storage, proposal_id: u64) -> u64 {
     let prefix = proposal_id;

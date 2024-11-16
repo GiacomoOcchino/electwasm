@@ -11,6 +11,8 @@ pub enum ContractError {
 
     #[error("Already voted on this proposal")]
     AlreadyVoted {},
+    #[error("Invalid Option")]
+    InvalidOption {},
 
     #[error("Invalid Winner")]
     InvalidWinner {},
@@ -20,6 +22,8 @@ pub enum ContractError {
 
     #[error("Quorum not reached")]
     QuorumNotReached {},
+    #[error("No option provided")]
+    NoOptionsProvided {},
 
     #[error("No vote")]
     NoVote {},

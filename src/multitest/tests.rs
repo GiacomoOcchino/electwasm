@@ -620,7 +620,7 @@ fn test_voting_unauthorized() {
 
     /* Start try voting */
     let b_vote = ExecuteMsg::Vote {
-        vote: Vote::B,
+        vote: 1,
         proposal_id,
     };
     let err = contract
@@ -728,7 +728,7 @@ fn test_simple_vote() {
 
     /* Start try voting */
     let b_vote = ExecuteMsg::Vote {
-        vote: Vote::B,
+        vote: 1,
         proposal_id,
     };
     let _response = contract.vote_proposal(&mut app, &voter2, b_vote).unwrap();
@@ -840,11 +840,11 @@ fn test_double_vote() {
 
     /* Start try voting */
     let b_vote = ExecuteMsg::Vote {
-        vote: Vote::B,
+        vote: 1,
         proposal_id,
     };
     let a_vote = ExecuteMsg::Vote {
-        vote: Vote::A,
+        vote: 0,
         proposal_id,
     };
     let _response = contract.vote_proposal(&mut app, &voter2, b_vote).unwrap();
@@ -957,11 +957,11 @@ fn test_vote_proposal_closed() {
 
     /* Start try voting */
     let b_vote = ExecuteMsg::Vote {
-        vote: Vote::B,
+        vote: 1,
         proposal_id,
     };
     let a_vote = ExecuteMsg::Vote {
-        vote: Vote::A,
+        vote: 0,
         proposal_id,
     };
     let err = contract
@@ -1092,11 +1092,11 @@ fn test_remove_voters_from_proposal() {
 
     /* Start try voting */
     let b_vote = ExecuteMsg::Vote {
-        vote: Vote::B,
+        vote: 1,
         proposal_id,
     };
     let a_vote = ExecuteMsg::Vote {
-        vote: Vote::A,
+        vote: 0,
         proposal_id,
     };
     contract
@@ -1258,11 +1258,11 @@ fn test_remove_voters_from_proposal_unauthorized() {
 
     /* Start try voting */
     let b_vote = ExecuteMsg::Vote {
-        vote: Vote::B,
+        vote: 1,
         proposal_id,
     };
     let a_vote = ExecuteMsg::Vote {
-        vote: Vote::A,
+        vote: 0,
         proposal_id,
     };
     contract
@@ -1413,7 +1413,7 @@ fn test_close_proposal_unauthorized() {
 
     /* Start try voting */
     let b_vote = ExecuteMsg::Vote {
-        vote: Vote::B,
+        vote: 1,
         proposal_id,
     };
     let _response = contract.vote_proposal(&mut app, &voter2, b_vote).unwrap();
@@ -1527,7 +1527,7 @@ fn test_close_proposal() {
 
     /* Start try voting */
     let b_vote = ExecuteMsg::Vote {
-        vote: Vote::B,
+        vote: 1,
         proposal_id,
     };
 
@@ -1732,19 +1732,19 @@ fn test_query_proposal_running_response() {
 
     /* Start try voting */
     let b_vote = ExecuteMsg::Vote {
-        vote: Vote::B,
+        vote: 1,
         proposal_id,
     };
     let a_vote = ExecuteMsg::Vote {
-        vote: Vote::A,
+        vote: 0,
         proposal_id,
     };
     let c_vote = ExecuteMsg::Vote {
-        vote: Vote::C,
+        vote: 2,
         proposal_id,
     };
     let d_vote = ExecuteMsg::Vote {
-        vote: Vote::D,
+        vote: 3,
         proposal_id,
     };
     contract
@@ -1903,19 +1903,19 @@ fn test_query_proposal_winner() {
 
     /* Start try voting */
     let b_vote = ExecuteMsg::Vote {
-        vote: Vote::B,
+        vote: 1,
         proposal_id,
     };
     let a_vote = ExecuteMsg::Vote {
-        vote: Vote::A,
+        vote: 0,
         proposal_id,
     };
     let c_vote = ExecuteMsg::Vote {
-        vote: Vote::C,
+        vote: 2,
         proposal_id,
     };
     let d_vote = ExecuteMsg::Vote {
-        vote: Vote::D,
+        vote: 3,
         proposal_id,
     };
     contract
@@ -2069,11 +2069,11 @@ fn test_query_proposal_no_winner() {
 
     /* Start try voting */
     let b_vote = ExecuteMsg::Vote {
-        vote: Vote::B,
+        vote: 1,
         proposal_id,
     };
     let a_vote = ExecuteMsg::Vote {
-        vote: Vote::A,
+        vote: 0,
         proposal_id,
     };
     contract
