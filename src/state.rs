@@ -53,29 +53,47 @@ pub enum ProposalStatus {
 
 #[cw_serde]
 pub struct Votes {
-    pub votes: HashMap<usize, u64>, // Mappa l'indice dell'opzione al conteggio dei voti
+   /* pub votes: HashMap<usize, u64>, // Mappa l'indice dell'opzione al conteggio dei voti
+   */
+  pub counts: Vec<u64>,
 }
 
 impl Votes {
     /// Inizializza una nuova mappa di voti vuota
-    pub fn start(num_options: usize) -> Self {
+    /*pub fn start(num_options: usize) -> Self {
         let mut votes = HashMap::new();
         for i in 0..num_options {
             votes.insert(i, 0);
         }
         Votes { votes }
+    }*/
+
+    pub fn start(num_options: usize) -> Self {
+        Votes {
+            counts: vec![0; num_options], // Inizializza tutti i contatori a zero
+        }
     }
 
+
+
     /// Aggiunge un voto all'opzione specificata
-    pub fn add_vote(&mut self, option_index: usize, weight: u64) {
+   /* pub fn add_vote(&mut self, option_index: usize, weight: u64) {
         if let Some(count) = self.votes.get_mut(&option_index) {
+            *count += weight;
+        }
+    }*/
+    pub fn add_vote(&mut self, option_index: usize, weight: u64) {
+        if let Some(count) = self.counts.get_mut(option_index) {
             *count += weight;
         }
     }
 
     /// Restituisce il totale di tutti i voti
-    pub fn total(&self) -> u64 {
+   /* pub fn total(&self) -> u64 {
         self.votes.values().sum()
+    }*/
+    pub fn total(&self) -> u64 {
+        self.counts.iter().sum()
     }
 }
 // #[cw_serde]

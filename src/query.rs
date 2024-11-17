@@ -92,7 +92,7 @@ pub fn query_proposal_running_response(deps: Deps, proposal_id: u64) -> StdResul
     // })
     // Crea una risposta contenente i voti
     let votes_response = Votes {
-        votes: prop.votes.votes.clone(), // Clona la mappa dei voti
+        counts: prop.votes.counts.clone(), // Clona la mappa dei voti
     };
     Ok(votes_response)
 }

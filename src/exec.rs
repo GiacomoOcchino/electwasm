@@ -240,7 +240,7 @@ pub fn execute_vote(
     deps: DepsMut,
     env: Env,
     info: MessageInfo,
-     vote: usize,
+    vote: usize,
     proposal_id: u64,
 ) -> Result<Response<Empty>, ContractError> {
     //Check if propose exist
@@ -259,14 +259,14 @@ pub fn execute_vote(
             BALLOTS.update(deps.storage, (proposal_id, &info.sender), |existing_vote| {
                 match existing_vote {
                     Some(_) => Err(ContractError::AlreadyVoted {}),
-                    None => Ok( vote),
+                    None => Ok(vote),
                 }
             })?;
             // Verifica che l'indice dell'opzione sia valido
-            if  vote >= prop.option.len() {
+            if vote >= prop.option.len() {
                 return Err(ContractError::InvalidOption {});
             }
-            prop.votes.add_vote( vote, 1);
+            prop.votes.add_vote(vote, 1);
             // prop.update_status(&env.block);
             PROPOSALS.save(deps.storage, proposal_id, &prop)?;
 
@@ -360,15 +360,21 @@ pub fn execute_close(
 
         if total_votes >= quorum {
             // Trova il massimo numero di voti
-            let max_votes = prop.votes.votes.values().cloned().max().unwrap_or(0);
+            let max_votes = prop.votes.counts.iter().cloned().max().unwrap_or(0);
 
-             // Filtra le opzioni che hanno il numero massimo di voti
-             let winners: Vec<usize> = prop.votes.votes
-             .iter()
-             .filter(|&(_, &count)| count == max_votes && max_votes > 0)
-             .map(|(&index, _)| index)
-             .collect();
-
+            // Filtra le opzioni che hanno il numero massimo di voti
+            let winners: Vec<usize> = prop
+                .votes
+                .counts
+                .iter()
+                .enumerate()
+                .filter(|&(_, &count)| count == max_votes && max_votes > 0)
+                .map(|(index, _)| index)
+                .collect();
+            //  .iter()
+            //  .filter(|&(_, &count)| count == max_votes && max_votes > 0)
+            //  .map(|(&index, _)| index)
+            //  .collect();
 
             if winners.len() > 1 {
                 // Mappa gli indici alle opzioni con pareggio e concatenale
