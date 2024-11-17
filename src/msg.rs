@@ -107,4 +107,5 @@ pub struct ProposalResult {
 pub struct VotersResponse {
     pub allowed_voters: Vec<Addr>,
     pub pending_voters: Vec<Addr>,
+    pub has_voted_voters: Vec<Addr>,
 }

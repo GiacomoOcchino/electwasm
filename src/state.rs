@@ -114,6 +114,13 @@ pub struct Ballot {
     pub vote: Vote,
 }
 
+#[cw_serde]
+pub enum VoterStatus {
+    NotAllowed, // L'utente non può votare
+    CanVote,    // L'utente può votare
+    HasVoted,   // L'utente ha già votato
+}
+
 pub const STATUS: Item<State> = Item::new("status");
 
 // pub const BALLOTS: Map<(u64, &Addr), Vote> = Map::new("votes");
@@ -121,7 +128,8 @@ pub const BALLOTS: Map<(u64, &Addr), usize> = Map::new("votes");
 
 
 /*Voters info Map<(ID proposal, voter address), can vote? true or false>*/
-pub const VOTERS: Map<(u64, &Addr), bool> = Map::new("voters");
+/*pub const VOTERS: Map<(u64, &Addr), bool> = Map::new("voters"); */
+pub const VOTERS: Map<(u64, &Addr), VoterStatus> = Map::new("voters");
 
 #[cw_serde]
 pub struct Proposal {

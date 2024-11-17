@@ -5,7 +5,10 @@ use cosmwasm_std::{
 use cw_utils::Expiration;
 
 use crate::{
-    state::{next_id, Proposal, ProposalStatus, Vote, Votes, BALLOTS, PROPOSALS, STATUS, VOTERS},
+    state::{
+        next_id, Proposal, ProposalStatus, Vote, VoterStatus, Votes, BALLOTS, PROPOSALS, STATUS,
+        VOTERS,
+    },
     ContractError,
 };
 pub fn execute_create_proposal(
@@ -193,8 +196,8 @@ pub fn update_voters(
     to_ask: String,
     to_remove: Vec<String>, // Nuovo parametro per rimuovere i votanti
 ) -> Result<Response, ContractError> {
+    let prop = PROPOSALS.load(deps.storage, proposal_id)?;
     if !to_remove.is_empty() {
-        let prop = PROPOSALS.load(deps.storage, proposal_id)?;
         if prop.proposer == sender {
             for voter in to_remove {
                 let remove_addr = deps.api.addr_validate(&voter)?;
@@ -208,11 +211,11 @@ pub fn update_voters(
     if !to_ask.is_empty() {
         let insert_addr = deps.api.addr_validate(&to_ask)?;
 
-        VOTERS.save(deps.storage, (proposal_id, &insert_addr), &false)?;
+        VOTERS.save(deps.storage, (proposal_id, &insert_addr), &VoterStatus::NotAllowed)?;
     }
     // Resto della logica per aggiungere votanti
     if !to_add.is_empty() {
-        let prop = PROPOSALS.load(deps.storage, proposal_id)?;
+        // let prop = PROPOSALS.load(deps.storage, proposal_id)?;
         if prop.proposer == sender {
             for voter in to_add {
                 let update_addr = deps.api.addr_validate(&voter)?;
@@ -221,9 +224,12 @@ pub fn update_voters(
                     (proposal_id, &update_addr),
                     |old| -> StdResult<_> {
                         Ok(match old {
-                            Some(true) => true,
-                            Some(false) => true,
-                            None => true,
+                            // Some(true) => true,
+                            // Some(false) => true,
+                            // None => true,
+                            Some(VoterStatus::NotAllowed) => VoterStatus::CanVote, // Aggiorna a `CanVote`
+                            Some(VoterStatus::CanVote) | Some(VoterStatus::HasVoted) => old.unwrap(), // Mantieni lo stato esistente
+                            None => VoterStatus::CanVote, 
                         })
                     },
                 )?;
@@ -252,16 +258,23 @@ pub fn execute_vote(
         return Err(ContractError::Expired {});
     }
 
-    let voter = VOTERS.may_load(deps.storage, (proposal_id, &info.sender))?;
-    match voter {
-        Some(true) => {
+    let voter_status = VOTERS.may_load(deps.storage, (proposal_id, &info.sender))?;
+    match voter_status {
+        Some(VoterStatus::CanVote) => {
             // L'utente può votare
-            BALLOTS.update(deps.storage, (proposal_id, &info.sender), |existing_vote| {
-                match existing_vote {
-                    Some(_) => Err(ContractError::AlreadyVoted {}),
-                    None => Ok(vote),
-                }
-            })?;
+            // BALLOTS.update(deps.storage, (proposal_id, &info.sender), |existing_vote| {
+            //     match existing_vote {
+            //         Some(_) => Err(ContractError::AlreadyVoted {}),
+            //         None => Ok(vote),
+            //     }
+            // })?;
+            // Aggiorna lo stato a "HasVoted"
+            VOTERS.save(
+                deps.storage,
+                (proposal_id, &info.sender),
+                &VoterStatus::HasVoted,
+            )?;
+
             // Verifica che l'indice dell'opzione sia valido
             if vote >= prop.option.len() {
                 return Err(ContractError::InvalidOption {});
@@ -276,17 +289,18 @@ pub fn execute_vote(
                 .add_attribute("proposal_id", proposal_id.to_string())
                 .add_attribute("status", format!("{:?}", prop.status)))
         }
-        Some(false) => {
-            // L'utente non può votare
-            return Err(ContractError::Unauthorized {});
+        Some(VoterStatus::HasVoted) => {
+            // L'utente ha già votato
+            return Err(ContractError::AlreadyVoted {});
         }
-        None => {
-            // L'utente non è stato trovato
+        _ => {
+            // L'utente non può votare o non è nella lista
             Err(ContractError::Unauthorized {})
         }
     }
     // Check if voter already vote
 }
+
 // pub fn execute_vote(
 //     deps: DepsMut,
 //     env: Env,
@@ -529,12 +543,12 @@ pub fn execute_close(
 // }
 
 pub fn count_participants(storage: &dyn Storage, proposal_id: u64) -> u64 {
-    let prefix = proposal_id;
+    // let prefix = proposal_id;
     VOTERS
-        .prefix(prefix)
+        .prefix(proposal_id)
         .range(storage, None, None, cosmwasm_std::Order::Ascending)
         .filter(|result| match result {
-            Ok((_, can_vote)) => *can_vote, // Considera solo quelli con `true`
+            Ok((_, status)) => matches!(status, VoterStatus::CanVote), // Considera solo quelli con `true`
             Err(_) => false,
         })
         .count() as u64

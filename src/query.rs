@@ -3,7 +3,7 @@ use crate::{
         ProposalIdsWithTitlesResponse, ProposalResponse, ProposalResult,
         ProposalsByProposerResponse, VoteInfo, VoteResponse, VotersResponse,
     },
-    state::{Votes, BALLOTS, PROPOSALS, VOTERS},
+    state::{VoterStatus, Votes, BALLOTS, PROPOSALS, VOTERS},
 };
 use cosmwasm_std::{Addr, Deps, Env, StdError, StdResult};
 
@@ -101,16 +101,17 @@ pub fn query_voters(deps: Deps, _env: Env, proposal_id: u64) -> StdResult<Voters
     // Filtra i votanti per la proposta specifica
     let mut allowed_voters = Vec::new();
     let mut pending_voters = Vec::new();
+    let mut has_voted_voters  = Vec::new();
 
     VOTERS
         .prefix(proposal_id)
         .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
         .for_each(|result| {
-            if let Ok((addr, can_vote)) = result {
-                if can_vote {
-                    allowed_voters.push(addr.clone());
-                } else {
-                    pending_voters.push(addr.clone());
+            if let Ok((addr, status)) = result {
+                match status {
+                    VoterStatus::CanVote => allowed_voters.push(addr.clone()),
+                    VoterStatus::NotAllowed => pending_voters.push(addr.clone()),
+                    VoterStatus::HasVoted => has_voted_voters.push(addr.clone()),
                 }
             }
         });
@@ -119,6 +120,7 @@ pub fn query_voters(deps: Deps, _env: Env, proposal_id: u64) -> StdResult<Voters
     let response = VotersResponse {
         allowed_voters,
         pending_voters,
+        has_voted_voters
     };
 
     Ok(response)
