@@ -13,6 +13,8 @@ pub enum ContractError {
     AlreadyVoted {},
     #[error("Invalid Option")]
     InvalidOption {},
+    #[error("Cannot remove voter")]
+    CannotRemoveVoter {},
 
     #[error("Invalid Winner")]
     InvalidWinner {},
