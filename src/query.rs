@@ -1,11 +1,17 @@
 use crate::{
     msg::{
         ProposalIdsWithTitlesResponse, ProposalResponse, ProposalResult,
-        ProposalsByProposerResponse, VoteInfo, VoteResponse, VotersResponse,
+        ProposalsByProposerResponse, VotersResponse,
     },
-    state::{VoterStatus, Votes, BALLOTS, PROPOSALS, VOTERS},
+    state::{
+        VoterStatus,
+        Votes,
+        // BALLOTS,
+        PROPOSALS,
+        VOTERS,
+    },
 };
-use cosmwasm_std::{Addr, Deps, Env, StdError, StdResult};
+use cosmwasm_std::{Addr, Deps, Env, StdResult};
 
 pub fn query_all_proposal_ids_with_titles(deps: Deps) -> StdResult<ProposalIdsWithTitlesResponse> {
     let proposals: Vec<(u64, String)> = PROPOSALS
@@ -63,36 +69,10 @@ pub fn query_proposal_result(deps: Deps, proposal_id: u64) -> StdResult<Proposal
     Ok(result)
 }
 
-pub fn query_vote(deps: Deps, voter: String, proposal_id: u64) -> StdResult<VoteResponse> {
-    let voter = deps.api.addr_validate(&voter)?;
-    let ballot = BALLOTS.may_load(deps.storage, (proposal_id, &voter))?;
-
-    let vote = match ballot {
-        Some(option_index) => VoteInfo {
-            voter: voter.into(),
-            vote: option_index,
-        },
-        None => {
-            // Gestisci il caso in cui il voto non è stato trovato
-            return Err(StdError::generic_err("Vote not found"));
-        }
-    };
-
-    Ok(VoteResponse { vote })
-}
-
 pub fn query_proposal_running_response(deps: Deps, proposal_id: u64) -> StdResult<Votes> {
     let prop = PROPOSALS.load(deps.storage, proposal_id)?;
-    // let votes = prop.votes;
-    // Ok(Votes {
-    //     a: votes.a,
-    //     b: votes.b,
-    //     c: votes.c,
-    //     d: votes.d,
-    // })
-    // Crea una risposta contenente i voti
     let votes_response = Votes {
-        counts: prop.votes.counts.clone(), // Clona la mappa dei voti
+        counts: prop.votes.counts.clone(),
     };
     Ok(votes_response)
 }
@@ -101,7 +81,7 @@ pub fn query_voters(deps: Deps, _env: Env, proposal_id: u64) -> StdResult<Voters
     // Filtra i votanti per la proposta specifica
     let mut allowed_voters = Vec::new();
     let mut pending_voters = Vec::new();
-    let mut has_voted_voters  = Vec::new();
+    let mut has_voted_voters = Vec::new();
 
     VOTERS
         .prefix(proposal_id)
@@ -120,7 +100,7 @@ pub fn query_voters(deps: Deps, _env: Env, proposal_id: u64) -> StdResult<Voters
     let response = VotersResponse {
         allowed_voters,
         pending_voters,
-        has_voted_voters
+        has_voted_voters,
     };
 
     Ok(response)

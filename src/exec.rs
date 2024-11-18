@@ -5,10 +5,7 @@ use cosmwasm_std::{
 use cw_utils::Expiration;
 
 use crate::{
-    state::{
-        next_id, Proposal, ProposalStatus, Vote, VoterStatus, Votes, BALLOTS, PROPOSALS, STATUS,
-        VOTERS,
-    },
+    state::{next_id, Proposal, ProposalStatus, VoterStatus, Votes, PROPOSALS, STATUS, VOTERS},
     ContractError,
 };
 pub fn execute_create_proposal(
@@ -211,7 +208,11 @@ pub fn update_voters(
     if !to_ask.is_empty() {
         let insert_addr = deps.api.addr_validate(&to_ask)?;
 
-        VOTERS.save(deps.storage, (proposal_id, &insert_addr), &VoterStatus::NotAllowed)?;
+        VOTERS.save(
+            deps.storage,
+            (proposal_id, &insert_addr),
+            &VoterStatus::NotAllowed,
+        )?;
     }
     // Resto della logica per aggiungere votanti
     if !to_add.is_empty() {
@@ -228,8 +229,10 @@ pub fn update_voters(
                             // Some(false) => true,
                             // None => true,
                             Some(VoterStatus::NotAllowed) => VoterStatus::CanVote, // Aggiorna a `CanVote`
-                            Some(VoterStatus::CanVote) | Some(VoterStatus::HasVoted) => old.unwrap(), // Mantieni lo stato esistente
-                            None => VoterStatus::CanVote, 
+                            Some(VoterStatus::CanVote) | Some(VoterStatus::HasVoted) => {
+                                old.unwrap()
+                            } // Mantieni lo stato esistente
+                            None => VoterStatus::CanVote,
                         })
                     },
                 )?;

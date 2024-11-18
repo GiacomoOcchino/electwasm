@@ -4,12 +4,12 @@ use cw_utils::Expiration;
 
 use crate::{
     msg::ExecuteMsg,
-    state::{State, Vote, BALLOTS, STATUS, VOTERS},
+    state::{State, STATUS, VOTERS},
     ContractError,
 };
 
 use super::contract::ElectwasmContract;
-
+/* DEFINE CONSTANT and utility functions  */
 const UJUNO: &str = "ujunox";
 const UATOM: &str = "uatom";
 
@@ -23,6 +23,7 @@ pub fn advance_time(app: &mut App, seconds: u64) {
 fn test_instantiate_with_valid_message() {
     let owner = Addr::unchecked("owner");
     let mut app = App::default();
+    /* Start Instantiate */
     let code_id = ElectwasmContract::store_code(&mut app);
     let commissions = vec![
         Coin {
@@ -47,7 +48,7 @@ fn test_instantiate_with_valid_message() {
     println!("admin {:?}", state.admin);
     println!("code_id {:?}", code_id);
 
-    // Asserto per verificare lo stato salvato
+    // Assertion to check the saved state
     assert_eq!(
         state,
         State {
@@ -60,17 +61,17 @@ fn test_instantiate_with_valid_message() {
 
 #[test]
 fn create_proposal_insufficient_funds() {
+    /* Define Utilities */
     let app = App::default();
     let owner = app.api().addr_make("owner");
     let proposer1 = app.api().addr_make("proposer1");
-    // let owner = Addr::unchecked("owner");
-    // let proposer1 = Addr::unchecked("proposer1");
     let mut app = App::new(|router, _api, storage| {
         router
             .bank
             .init_balance(storage, &proposer1, coins(500_000, UATOM))
             .unwrap();
     });
+    /* Start Instantiate */
     let code_id = ElectwasmContract::store_code(&mut app);
     let commissions = vec![
         Coin {
@@ -91,8 +92,8 @@ fn create_proposal_insufficient_funds() {
         0,
     )
     .unwrap();
-
-    /* Try to create a proposal */
+    /* End Instantiate */
+    /* Start create a proposal */
     let env = mock_env();
     let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
 
@@ -116,7 +117,7 @@ fn create_proposal_insufficient_funds() {
             commission: Uint128::new(500_000)
         }
     );
-
+    /* Verify correct balance */
     assert_eq!(
         app.wrap().query_all_balances(proposer1.clone()).unwrap(),
         coins(500_000, "uatom")
@@ -125,6 +126,7 @@ fn create_proposal_insufficient_funds() {
 
 #[test]
 fn create_proposal_unsupported_funds() {
+    /* Define Utilities */
     let app = App::default();
     let owner = app.api().addr_make("owner");
     let proposer1 = app.api().addr_make("proposer1");
@@ -134,17 +136,12 @@ fn create_proposal_unsupported_funds() {
             .init_balance(storage, &proposer1, coins(500_000, UATOM))
             .unwrap();
     });
+    /* Start Instantiate */
     let code_id = ElectwasmContract::store_code(&mut app);
-    let commissions = vec![
-        // Coin {
-        //     denom: UATOM.to_string(),
-        //     amount: Uint128::new(500_000),
-        // },
-        Coin {
-            denom: UJUNO.to_string(),
-            amount: Uint128::new(500_000),
-        },
-    ];
+    let commissions = vec![Coin {
+        denom: UJUNO.to_string(),
+        amount: Uint128::new(500_000),
+    }];
     let contract = ElectwasmContract::instantiate(
         &mut app,
         code_id,
@@ -154,8 +151,8 @@ fn create_proposal_unsupported_funds() {
         0,
     )
     .unwrap();
-
-    /* Try to create a proposal */
+    /* End Instantiate */
+    /* Start create a proposal */
     let env = mock_env();
     let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
 
@@ -174,9 +171,6 @@ fn create_proposal_unsupported_funds() {
         .unwrap_err();
 
     // Not supported Token
-    // let info = message_info(&voter1, &coins(1_000, "ucosm"));
-    // let res = execute(deps.as_mut(), mock_env(), info, proposal.clone()).unwrap_err();
-    // Verify
     assert_eq!(err, ContractError::UnsupportedToken {});
 
     assert_eq!(
@@ -187,6 +181,7 @@ fn create_proposal_unsupported_funds() {
 
 #[test]
 fn create_proposal_works() {
+    /* Define Utilities */
     let app = App::default();
     let owner = app.api().addr_make("owner");
     let proposer1 = app.api().addr_make("proposer1");
@@ -196,6 +191,7 @@ fn create_proposal_works() {
             .init_balance(storage, &proposer1, coins(600_000, UATOM))
             .unwrap();
     });
+    /* Start Instantiate */
     let code_id = ElectwasmContract::store_code(&mut app);
     let commissions = vec![
         Coin {
@@ -216,8 +212,8 @@ fn create_proposal_works() {
         0,
     )
     .unwrap();
-
-    /* Try to create a proposal */
+    /* End Instantiate */
+    /* Start create a proposal */
     let env = mock_env();
     let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
 
@@ -235,6 +231,8 @@ fn create_proposal_works() {
         .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
         .unwrap();
 
+    /* Verify new balances */
+
     assert_eq!(
         app.wrap().query_all_balances(proposer1.clone()).unwrap(),
         coins(100_000, "uatom")
@@ -247,6 +245,7 @@ fn create_proposal_works() {
 
 #[test]
 fn create_multiple_proposal() {
+    /* Define Utilities */
     let app = App::default();
     let owner = app.api().addr_make("owner");
     let proposer1 = app.api().addr_make("proposer1");
@@ -277,7 +276,7 @@ fn create_multiple_proposal() {
     )
     .unwrap();
 
-    /* Try to create a proposal */
+    /* Start create a proposal */
     let env = mock_env();
     let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
 
@@ -303,15 +302,11 @@ fn create_multiple_proposal() {
     let _resp = contract
         .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal_2)
         .unwrap();
-
+    /* Verify new balances */
     assert_eq!(
         app.wrap().query_all_balances(proposer1.clone()).unwrap(),
         coins(200_000, "uatom")
     );
-    // assert_eq!(
-    //     app.wrap().query_all_balances(proposer2.clone()).unwrap(),
-    //     coins(100_000, "uatom")
-    // );
     assert_eq!(
         app.wrap().query_all_balances(owner.clone()).unwrap(),
         coins(1000_000, "uatom")
@@ -375,7 +370,7 @@ fn test_vote_request_unauthorized() {
         .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
         .unwrap();
 
-    // Estrai l'ID dagli attributi della risposta
+    // Extract ID from response attributes
     let proposal_id = resp
         .events
         .iter()
@@ -474,7 +469,7 @@ fn test_vote_request_from_owner() {
         .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
         .unwrap();
 
-    // Estrai l'ID dagli attributi della risposta
+    // Extract ID from response attributes
     let proposal_id = resp
         .events
         .iter()
@@ -577,7 +572,7 @@ fn test_voting_unauthorized() {
         .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
         .unwrap();
 
-    // Estrai l'ID dagli attributi della risposta
+    // Extract ID from response attributes
     let proposal_id = resp
         .events
         .iter()
@@ -685,7 +680,7 @@ fn test_simple_vote() {
         .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
         .unwrap();
 
-    // Estrai l'ID dagli attributi della risposta
+    // Extract ID from response attributes
     let proposal_id = resp
         .events
         .iter()
@@ -732,13 +727,6 @@ fn test_simple_vote() {
         proposal_id,
     };
     let _response = contract.vote_proposal(&mut app, &voter2, b_vote).unwrap();
-    // assert_eq!(err, ContractError::Unauthorized {});
-
-    /* Check if voter2 can vote now */
-    let vote = BALLOTS
-        .query(&app.wrap(), contract.addr().clone(), (proposal_id, &voter2))
-        .unwrap();
-    println!("vote{:?}", vote);
 }
 #[test]
 fn test_double_vote() {
@@ -797,7 +785,7 @@ fn test_double_vote() {
         .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
         .unwrap();
 
-    // Estrai l'ID dagli attributi della risposta
+    // Extract ID from response attributes
     let proposal_id = resp
         .events
         .iter()
@@ -891,7 +879,6 @@ fn test_vote_proposal_closed() {
         0,
     )
     .unwrap();
-
     /* End Instantiate */
 
     /* Start create a proposal */
@@ -912,7 +899,7 @@ fn test_vote_proposal_closed() {
         .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
         .unwrap();
 
-    // Estrai l'ID dagli attributi della risposta
+    // Extract ID from response attributes
     let proposal_id = resp
         .events
         .iter()
@@ -1037,7 +1024,7 @@ fn test_remove_voters_from_proposal() {
         .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
         .unwrap();
 
-    // Estrai l'ID dagli attributi della risposta
+    // Extract ID from response attributes
     let proposal_id = resp
         .events
         .iter()
@@ -1203,7 +1190,7 @@ fn test_remove_voters_from_proposal_unauthorized() {
         .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
         .unwrap();
 
-    // Estrai l'ID dagli attributi della risposta
+    // Extract ID from response attributes
     let proposal_id = resp
         .events
         .iter()
@@ -1370,7 +1357,7 @@ fn test_close_proposal_unauthorized() {
         .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
         .unwrap();
 
-    // Estrai l'ID dagli attributi della risposta
+    // Extract ID from response attributes
     let proposal_id = resp
         .events
         .iter()
@@ -1417,7 +1404,7 @@ fn test_close_proposal_unauthorized() {
         proposal_id,
     };
     let _response = contract.vote_proposal(&mut app, &voter2, b_vote).unwrap();
-    // Avanza il tempo di 1 giorno (86400 secondi)
+    // Advance time by 1 day (86400 seconds)
     advance_time(&mut app, 259200);
     let close = ExecuteMsg::Close { proposal_id };
     let err = contract
@@ -1484,7 +1471,7 @@ fn test_close_proposal() {
         .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
         .unwrap();
 
-    // Estrai l'ID dagli attributi della risposta
+    // Extract ID from response attributes
     let proposal_id = resp
         .events
         .iter()
@@ -1533,7 +1520,7 @@ fn test_close_proposal() {
 
     let _response = contract.vote_proposal(&mut app, &voter2, b_vote).unwrap();
 
-    // Avanza il tempo di 1 giorno (86400 secondi)
+    // Advance time by 1 day (86400 seconds)
     advance_time(&mut app, 259200);
     let close = ExecuteMsg::Close { proposal_id };
     let _response = contract
@@ -1599,7 +1586,7 @@ fn test_query_proposal_info() {
         .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
         .unwrap();
 
-    // Estrai l'ID dagli attributi della risposta
+    // Extract ID from response attributes
     let proposal_id = resp
         .events
         .iter()
@@ -1616,7 +1603,6 @@ fn test_query_proposal_info() {
     /* Query proposal info */
     let query_response = contract.query_proposal_info(&app, proposal_id).unwrap();
     println!("{:?}", query_response);
-    // assert_eq!(query_response,);
 }
 #[test]
 fn test_query_proposal_running_response() {
@@ -1678,7 +1664,7 @@ fn test_query_proposal_running_response() {
         .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
         .unwrap();
 
-    // Estrai l'ID dagli attributi della risposta
+    // Extract ID from response attributes
     let proposal_id = resp
         .events
         .iter()
@@ -1696,7 +1682,6 @@ fn test_query_proposal_running_response() {
         .query_proposal_running_response(&app, proposal_id)
         .unwrap();
     println!("{:?}", query_response);
-    // assert_eq!(query_response,);
 
     /* Start ask join to proposal */
     let ask_action = ExecuteMsg::UpdateVoters {
@@ -1739,11 +1724,11 @@ fn test_query_proposal_running_response() {
         vote: 0,
         proposal_id,
     };
-    let c_vote = ExecuteMsg::Vote {
+    let _c_vote = ExecuteMsg::Vote {
         vote: 2,
         proposal_id,
     };
-    let d_vote = ExecuteMsg::Vote {
+    let _d_vote = ExecuteMsg::Vote {
         vote: 3,
         proposal_id,
     };
@@ -1775,19 +1760,12 @@ fn test_query_proposal_running_response() {
         .query_proposal_running_response(&app, proposal_id)
         .unwrap();
     println!("{:?}", query_response);
-    // let err = contract
-    //     .vote_proposal(&mut app, &voter2, a_vote)
-    //     .unwrap_err();
-
-    // Avanza il tempo di 1 giorno (86400 secondi)
+    // Advance time by 1 day (86400 seconds)
     advance_time(&mut app, 259200);
     let close = ExecuteMsg::Close { proposal_id };
-    let response = contract
+    let _response = contract
         .close_proposal(&mut app, &proposer1, close)
         .unwrap();
-    // assert_eq!(err, ContractError::Unauthorized {  });
-    /* Someone that is no the owner of the proposal can't accept */
-    // assert_eq!(err, ContractError::Expired {});
 }
 #[test]
 fn test_query_proposal_winner() {
@@ -1849,7 +1827,7 @@ fn test_query_proposal_winner() {
         .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
         .unwrap();
 
-    // Estrai l'ID dagli attributi della risposta
+    // Extract ID from response attributes
     let proposal_id = resp
         .events
         .iter()
@@ -1910,11 +1888,11 @@ fn test_query_proposal_winner() {
         vote: 0,
         proposal_id,
     };
-    let c_vote = ExecuteMsg::Vote {
+    let _c_vote = ExecuteMsg::Vote {
         vote: 2,
         proposal_id,
     };
-    let d_vote = ExecuteMsg::Vote {
+    let _d_vote = ExecuteMsg::Vote {
         vote: 3,
         proposal_id,
     };
@@ -1946,7 +1924,7 @@ fn test_query_proposal_winner() {
         .query_proposal_running_response(&app, proposal_id)
         .unwrap();
     println!("{:?}", query_response);
-    // Avanza il tempo di 1 giorno (86400 secondi)
+    // Advance time by 1 day (86400 seconds)
     advance_time(&mut app, 259200);
     let close = ExecuteMsg::Close { proposal_id };
     let _response = contract
@@ -2015,7 +1993,7 @@ fn test_query_proposal_no_winner() {
         .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
         .unwrap();
 
-    // Estrai l'ID dagli attributi della risposta
+    // Extract ID from response attributes
     let proposal_id = resp
         .events
         .iter()
@@ -2106,7 +2084,7 @@ fn test_query_proposal_no_winner() {
         .query_proposal_running_response(&app, proposal_id)
         .unwrap();
     println!("{:?}", query_response);
-    // Avanza il tempo di 1 giorno (86400 secondi)
+    // Advance time by 1 day (86400 seconds)
     advance_time(&mut app, 259200);
     let close = ExecuteMsg::Close { proposal_id };
     let _response = contract
@@ -2148,7 +2126,7 @@ fn query_multiple_proposal() {
     )
     .unwrap();
 
-    /* Try to create a proposal */
+    /* Start create a proposal */
     let env = mock_env();
     let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
 
@@ -2225,7 +2203,7 @@ fn query_proposal_by_proposer() {
     )
     .unwrap();
 
-    /* Try to create a proposal */
+    /* Start create a proposal */
     let env = mock_env();
     let ts = Timestamp::from_nanos(env.block.time.nanos()); // Mock timestamp
 
@@ -2330,7 +2308,7 @@ fn query_proposal_voters() {
         .create_proposal(&mut app, &proposer1, &coins(500_000, UATOM), proposal)
         .unwrap();
 
-    // Estrai l'ID dagli attributi della risposta
+    // Extract ID from response attributes
     let proposal_id = resp
         .events
         .iter()
@@ -2348,7 +2326,6 @@ fn query_proposal_voters() {
         .query_proposal_running_response(&app, proposal_id)
         .unwrap();
     println!("{:?}", query_response);
-    // assert_eq!(query_response,);
 
     /* Start ask join to proposal */
     let ask_action = ExecuteMsg::UpdateVoters {

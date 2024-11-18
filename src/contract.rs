@@ -18,8 +18,6 @@ pub fn instantiate(
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    println!("Cname {:?}", CONTRACT_NAME);
-    println!("Cversion {:?}", CONTRACT_VERSION);
     let state = State {
         admin: info.sender,
         commissions: msg.commissions,
@@ -59,9 +57,9 @@ pub fn execute(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::Vote { voter, proposal_id } => {
+        /*QueryMsg::Vote { voter, proposal_id } => {
             to_json_binary(&query::query_vote(deps, voter, proposal_id)?)
-        }
+        }*/
         QueryMsg::Running { proposal_id } => {
             to_json_binary(&query::query_proposal_running_response(deps, proposal_id)?)
         }

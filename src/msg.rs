@@ -1,4 +1,4 @@
-use crate::state::{ProposalStatus, Vote, Votes};
+use crate::state::{ProposalStatus, Votes};
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin};
 use cw_utils::Expiration;
@@ -29,8 +29,6 @@ pub enum ExecuteMsg {
         description: String,
         option: Vec<String>,
         expires: Expiration,
-        // msgs: Vec<CosmosMsg<Empty>>,
-        // note: we ignore API-spec'd earliest if passed, always opens immediately
     },
 }
 
@@ -51,8 +49,8 @@ pub struct VoteResponse {
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {
-    #[returns(VoteResponse)]
-    Vote { voter: String, proposal_id: u64 },
+    /*#[returns(VoteResponse)]
+    Vote { voter: String, proposal_id: u64 },*/
     #[returns(Votes)]
     Running { proposal_id: u64 },
     #[returns(ProposalResponse)]
@@ -65,8 +63,6 @@ pub enum QueryMsg {
     AllProposalIds {},
     #[returns(ProposalsByProposerResponse)]
     ProposalByProposer { proposer: Addr },
-    // #[returns(VoteListResponse)]
-    // GetAllVotes { proposal_id: u64 },
 }
 
 #[cw_serde]
