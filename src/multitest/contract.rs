@@ -5,9 +5,8 @@ use crate::{
     contract::{execute, instantiate, query},
     msg::{
         ExecuteMsg, InstantiateMsg, ProposalIdsWithTitlesResponse, ProposalResponse,
-        ProposalResult, ProposalsByProposerResponse, QueryMsg, StatusResponse, VotersResponse,
+        ProposalResult, ProposalsByProposerResponse, QueryMsg, StatusResponse, VotersResponse, VotesResponse,
     },
-    state::Votes,
     ContractError,
 };
 
@@ -94,7 +93,7 @@ impl ElectwasmContract {
         app.wrap()
             .query_wasm_smart(self.0.clone(), &QueryMsg::Proposal { proposal_id })
     }
-    pub fn query_proposal_running_response(&self, app: &App, proposal_id: u64) -> StdResult<Votes> {
+    pub fn query_proposal_running_response(&self, app: &App, proposal_id: u64) -> StdResult<VotesResponse> {
         app.wrap()
             .query_wasm_smart(self.0.clone(), &QueryMsg::Running { proposal_id })
     }

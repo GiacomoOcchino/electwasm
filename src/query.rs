@@ -1,10 +1,9 @@
 use crate::{
     msg::{
-        ProposalIdsWithTitlesResponse, ProposalResponse, ProposalResult, ProposalsByProposerResponse, StatusResponse, VotersResponse
+        ProposalIdsWithTitlesResponse, ProposalResponse, ProposalResult,
+        ProposalsByProposerResponse, StatusResponse, VotersResponse, VotesResponse,
     },
-    state::{
-        VoterStatus, Votes, PROPOSALS, STATUS, VOTERS
-    },
+    state::{VoterStatus, PROPOSALS, STATUS, VOTERS},
 };
 use cosmwasm_std::{Addr, Deps, Env, StdResult};
 
@@ -64,9 +63,9 @@ pub fn query_proposal_result(deps: Deps, proposal_id: u64) -> StdResult<Proposal
     Ok(result)
 }
 
-pub fn query_proposal_running_response(deps: Deps, proposal_id: u64) -> StdResult<Votes> {
+pub fn query_proposal_running_response(deps: Deps, proposal_id: u64) -> StdResult<VotesResponse> {
     let prop = PROPOSALS.load(deps.storage, proposal_id)?;
-    let votes_response = Votes {
+    let votes_response = VotesResponse {
         counts: prop.votes.counts.clone(),
     };
     Ok(votes_response)

@@ -1,11 +1,11 @@
-use crate::state::{ProposalStatus, Votes};
+use crate::state::ProposalStatus;
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Addr, Coin};
 use cw_utils::Expiration;
 
 #[cw_serde]
 pub struct InstantiateMsg {
-    pub commissions: Vec<Coin>, //TODO DA INSERIRE
+    pub commissions: Vec<Coin>,
     pub voting_fee: u64,
 }
 
@@ -47,11 +47,13 @@ pub struct VoteResponse {
 }
 
 #[cw_serde]
+pub struct VotesResponse {
+    pub counts: Vec<u64>,
+}
+#[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {
-    /*#[returns(VoteResponse)]
-    Vote { voter: String, proposal_id: u64 },*/
-    #[returns(Votes)]
+    #[returns(VotesResponse)]
     Running { proposal_id: u64 },
     #[returns(ProposalResponse)]
     Proposal { proposal_id: u64 },
@@ -80,7 +82,7 @@ pub struct ProposalIdsWithTitlesResponse {
 
 #[cw_serde]
 pub struct ProposalsByProposerResponse {
-    pub proposals: Vec<(u64, String)>, // ID e titolo delle proposte
+    pub proposals: Vec<(u64, String)>,
 }
 
 #[cw_serde]
@@ -98,7 +100,7 @@ pub struct ProposalResponse {
 pub struct ProposalResult {
     pub title: String,
     pub description: String,
-    pub winner: Option<String>, // Vincitore o None se non c'è ancora un vincitore
+    pub winner: Option<String>,
 }
 
 #[cw_serde]
@@ -111,6 +113,6 @@ pub struct VotersResponse {
 #[cw_serde]
 pub struct StatusResponse {
     pub admin: String,
-    pub commissions: Vec<String>, // Formatta le commissioni come stringhe per facilità di lettura
+    pub commissions: Vec<String>,
     pub voting_fee: u64,
 }
