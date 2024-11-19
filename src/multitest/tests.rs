@@ -2655,3 +2655,44 @@ fn query_proposal_voters() {
     let query_response = contract.query_proposal_voters(&app, proposal_id).unwrap();
     println!("{:?}", query_response);
 }
+#[test]
+fn query_contract_status() {
+    /* Define utilities */
+    let app = App::default();
+    let owner = app.api().addr_make("owner");
+    let proposer1 = app.api().addr_make("proposer1");
+    let mut app = App::new(|router, _api, storage| {
+        router
+            .bank
+            .init_balance(storage, &proposer1, coins(600_000, UATOM))
+            .unwrap();
+    });
+
+    /* Start Instantiate */
+    let code_id = ElectwasmContract::store_code(&mut app);
+    let commissions = vec![
+        Coin {
+            denom: UATOM.to_string(),
+            amount: Uint128::new(500_000),
+        },
+        Coin {
+            denom: UJUNO.to_string(),
+            amount: Uint128::new(500_000),
+        },
+    ];
+    let contract = ElectwasmContract::instantiate(
+        &mut app,
+        code_id,
+        &owner,
+        "First Election",
+        commissions.clone(),
+        0,
+    )
+    .unwrap();
+
+    /* End Instantiate */
+
+    /* Start create a proposal */
+    let query_response = contract.query_contract_status(&app).unwrap();
+    println!("{:?}", query_response);
+}

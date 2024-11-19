@@ -1,14 +1,9 @@
 use crate::{
     msg::{
-        ProposalIdsWithTitlesResponse, ProposalResponse, ProposalResult,
-        ProposalsByProposerResponse, VotersResponse,
+        ProposalIdsWithTitlesResponse, ProposalResponse, ProposalResult, ProposalsByProposerResponse, StatusResponse, VotersResponse
     },
     state::{
-        VoterStatus,
-        Votes,
-        // BALLOTS,
-        PROPOSALS,
-        VOTERS,
+        VoterStatus, Votes, PROPOSALS, STATUS, VOTERS
     },
 };
 use cosmwasm_std::{Addr, Deps, Env, StdResult};
@@ -103,5 +98,19 @@ pub fn query_voters(deps: Deps, _env: Env, proposal_id: u64) -> StdResult<Voters
         has_voted_voters,
     };
 
+    Ok(response)
+}
+
+pub fn query_status(deps: Deps) -> StdResult<StatusResponse> {
+    let state = STATUS.load(deps.storage)?;
+    let response = StatusResponse {
+        admin: state.admin.to_string(),
+        commissions: state
+            .commissions
+            .iter()
+            .map(|coin| format!("{} {}", coin.amount, coin.denom))
+            .collect(),
+        voting_fee: state.voting_fee,
+    };
     Ok(response)
 }

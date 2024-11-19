@@ -61,6 +61,8 @@ pub enum QueryMsg {
     Voters { proposal_id: u64 },
     #[returns(ProposalIdsWithTitlesResponse)]
     AllProposalIds {},
+    #[returns(StatusResponse)]
+    Status {},
     #[returns(ProposalsByProposerResponse)]
     ProposalByProposer { proposer: Addr },
 }
@@ -104,4 +106,11 @@ pub struct VotersResponse {
     pub allowed_voters: Vec<Addr>,
     pub pending_voters: Vec<Addr>,
     pub has_voted_voters: Vec<Addr>,
+}
+
+#[cw_serde]
+pub struct StatusResponse {
+    pub admin: String,
+    pub commissions: Vec<String>, // Formatta le commissioni come stringhe per facilità di lettura
+    pub voting_fee: u64,
 }

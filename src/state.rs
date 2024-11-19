@@ -44,12 +44,6 @@ impl Votes {
 pub enum Vote {
     Option(usize), // Use the option index for voting
 }
-// It contains the vote info
-#[cw_serde]
-pub struct Ballot {
-    pub weight: u64,
-    pub vote: Vote,
-}
 
 #[cw_serde]
 pub enum VoterStatus {
