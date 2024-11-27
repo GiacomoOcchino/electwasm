@@ -33,20 +33,6 @@ pub enum ExecuteMsg {
 }
 
 #[cw_serde]
-pub struct VoteInfo {
-    pub voter: String,
-    pub vote: usize,
-}
-#[cw_serde]
-pub struct VoteListResponse {
-    pub votes: Vec<VoteInfo>,
-}
-#[cw_serde]
-pub struct VoteResponse {
-    pub vote: VoteInfo,
-}
-
-#[cw_serde]
 pub struct VotesResponse {
     pub counts: Vec<u64>,
 }
@@ -61,12 +47,12 @@ pub enum QueryMsg {
     Winner { proposal_id: u64 },
     #[returns(VotersResponse)]
     Voters { proposal_id: u64 },
-    #[returns(ProposalIdsWithTitlesResponse)]
-    AllProposalIds {},
+    #[returns(AllProposalsInfoResponse)]
+    AllProposals {},
     #[returns(StatusResponse)]
     Status {},
     #[returns(ProposalsByProposerResponse)]
-    ProposalByProposer { proposer: Addr },
+    ProposalsByProposer { proposer: Addr },
 }
 
 #[cw_serde]
@@ -76,13 +62,20 @@ pub struct Voter {
 }
 
 #[cw_serde]
-pub struct ProposalIdsWithTitlesResponse {
-    pub proposals: Vec<(u64, String)>,
+pub struct AllProposalsInfoResponse {
+    pub proposals: Vec<(u64, String, ProposalStatus)>,
 }
 
 #[cw_serde]
+pub struct ProposalsInfoByProposer {
+    pub id: u64,
+    pub title: String,
+    pub status: ProposalStatus,
+    pub winner: Option<String>,
+}
+#[cw_serde]
 pub struct ProposalsByProposerResponse {
-    pub proposals: Vec<(u64, String)>,
+    pub proposals: Vec<ProposalsInfoByProposer>,
 }
 
 #[cw_serde]

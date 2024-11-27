@@ -57,12 +57,10 @@ pub fn execute(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        /*QueryMsg::Vote { voter, proposal_id } => {
-            to_json_binary(&query::query_vote(deps, voter, proposal_id)?)
-        }*/
         QueryMsg::Running { proposal_id } => {
             to_json_binary(&query::query_proposal_running_response(deps, proposal_id)?)
         }
+        
         QueryMsg::Winner { proposal_id } => {
             to_json_binary(&query::query_proposal_result(deps, proposal_id)?)
         }
@@ -70,10 +68,10 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::Proposal { proposal_id } => {
             to_json_binary(&query::query_proposal(deps, env, proposal_id)?)
         }
-        QueryMsg::ProposalByProposer { proposer } => {
+        QueryMsg::ProposalsByProposer { proposer } => {
             to_json_binary(&query::query_proposals_by_proposer(deps, proposer)?)
         }
-        QueryMsg::AllProposalIds {} => {
+        QueryMsg::AllProposals {} => {
             to_json_binary(&query::query_all_proposal_ids_with_titles_and_status(deps)?)
         }
         QueryMsg::Status {} => {

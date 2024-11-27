@@ -1,35 +1,39 @@
 use crate::{
     msg::{
-        ProposalIdsWithTitlesResponse, ProposalResponse, ProposalResult,
-        ProposalsByProposerResponse, StatusResponse, VotersResponse, VotesResponse,
+        AllProposalsInfoResponse, ProposalResponse, ProposalResult, ProposalsByProposerResponse, ProposalsInfoByProposer, StatusResponse, VotersResponse, VotesResponse
     },
-    state::{VoterStatus, PROPOSALS, STATUS, VOTERS},
+    state::{ProposalStatus, VoterStatus, PROPOSALS, STATUS, VOTERS},
 };
 use cosmwasm_std::{Addr, Deps, Env, StdResult};
 
-pub fn query_all_proposal_ids_with_titles(deps: Deps) -> StdResult<ProposalIdsWithTitlesResponse> {
-    let proposals: Vec<(u64, String)> = PROPOSALS
+pub fn query_all_proposal_ids_with_titles_and_status(deps: Deps) -> StdResult<AllProposalsInfoResponse> {
+    let proposals: Vec<(u64, String,ProposalStatus)> = PROPOSALS
         .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
         .map(|item| {
-            item.map(|(id, proposal)| (id, proposal.title.clone())) // Mappa ID e titolo
+            item.map(|(id, proposal)| (id, proposal.title,proposal.status)) // Mappa ID e titolo
         })
-        .collect::<StdResult<Vec<(u64, String)>>>()?;
+        .collect::<StdResult<Vec<(u64, String,ProposalStatus)>>>()?;
 
-    let response = ProposalIdsWithTitlesResponse { proposals };
+    let response = AllProposalsInfoResponse { proposals };
     Ok(response)
 }
 pub fn query_proposals_by_proposer(
     deps: Deps,
     proposer: Addr,
 ) -> StdResult<ProposalsByProposerResponse> {
-    let mut proposals: Vec<(u64, String)> = Vec::new();
+    let mut proposals: Vec<ProposalsInfoByProposer> = Vec::new();
 
     PROPOSALS
         .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
         .for_each(|item| {
             if let Ok((id, proposal)) = item {
                 if proposal.proposer == proposer {
-                    proposals.push((id, proposal.title.clone()));
+                    proposals.push(ProposalsInfoByProposer {
+                        id,
+                        title: proposal.title,
+                        status: proposal.status,
+                        winner: proposal.winner,
+                    });
                 }
             }
         });
