@@ -1,6 +1,6 @@
 [package]
 name = "electwasm"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Giacomo Occhino <giacomoocchino16@gmail.com>"]
 edition = "2021"
 
