@@ -1,6 +1,5 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, BlockInfo, Coin, StdResult, Storage};
-
 use cw_storage_plus::{Item, Map};
 use cw_utils::Expiration;
 
@@ -19,11 +18,10 @@ pub struct Votes {
 }
 
 impl Votes {
-    /// Inizializza una nuova mappa di voti vuota
-
+    /// Initialize a new empty vote map
     pub fn start(num_options: usize) -> Self {
         Votes {
-            counts: vec![0; num_options], // Inizializza tutti i contatori a zero
+            counts: vec![0; num_options], // Initialize all counters to zero
         }
     }
 
@@ -38,11 +36,6 @@ impl Votes {
     pub fn total(&self) -> u64 {
         self.counts.iter().sum()
     }
-}
-
-#[cw_serde]
-pub enum Vote {
-    Option(usize), // Use the option index for voting
 }
 
 #[cw_serde]

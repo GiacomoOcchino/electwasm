@@ -74,7 +74,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
             to_json_binary(&query::query_proposals_by_proposer(deps, proposer)?)
         }
         QueryMsg::AllProposalIds {} => {
-            to_json_binary(&query::query_all_proposal_ids_with_titles(deps)?)
+            to_json_binary(&query::query_all_proposal_ids_with_titles_and_status(deps)?)
         }
         QueryMsg::Status {} => {
             to_json_binary(&query::query_status(deps)?)
