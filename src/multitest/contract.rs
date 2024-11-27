@@ -4,7 +4,7 @@ use cw_multi_test::{App, AppResponse, ContractWrapper, Executor};
 use crate::{
     contract::{execute, instantiate, query},
     msg::{
-        ExecuteMsg, InstantiateMsg, ProposalIdsWithTitlesResponse, ProposalResponse,
+        ExecuteMsg, InstantiateMsg, AllProposalsInfoResponse, ProposalResponse,
         ProposalResult, ProposalsByProposerResponse, QueryMsg, StatusResponse, VotersResponse, VotesResponse,
     },
     ContractError,
@@ -105,20 +105,20 @@ impl ElectwasmContract {
         app.wrap()
             .query_wasm_smart(self.0.clone(), &QueryMsg::Voters { proposal_id })
     }
-    pub fn query_all_proposal(&self, app: &App) -> StdResult<ProposalIdsWithTitlesResponse> {
+    pub fn query_all_proposals(&self, app: &App) -> StdResult<AllProposalsInfoResponse> {
         app.wrap()
-            .query_wasm_smart(self.0.clone(), &QueryMsg::AllProposalIds {})
+            .query_wasm_smart(self.0.clone(), &QueryMsg::AllProposals {})
     }
     pub fn query_contract_status(&self, app: &App) -> StdResult<StatusResponse> {
         app.wrap()
             .query_wasm_smart(self.0.clone(), &QueryMsg::Status {})
     }
-    pub fn query_proposal_by_proposer(
+    pub fn query_proposals_by_proposer(
         &self,
         app: &App,
         proposer: Addr,
     ) -> StdResult<ProposalsByProposerResponse> {
         app.wrap()
-            .query_wasm_smart(self.0.clone(), &QueryMsg::ProposalByProposer { proposer })
+            .query_wasm_smart(self.0.clone(), &QueryMsg::ProposalsByProposer { proposer })
     }
 }

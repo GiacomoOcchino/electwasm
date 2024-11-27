@@ -2444,12 +2444,12 @@ fn query_multiple_proposal() {
         coins(1000_000, "uatom")
     );
 
-    let query_response = contract.query_all_proposal(&app).unwrap();
+    let query_response = contract.query_all_proposals(&app).unwrap();
     println!("{:?}", query_response);
 }
 
 #[test]
-fn query_proposal_by_proposer() {
+fn query_proposals_by_proposer() {
     let app = App::default();
     let owner = app.api().addr_make("owner");
     let proposer1 = app.api().addr_make("proposer1");
@@ -2526,7 +2526,7 @@ fn query_proposal_by_proposer() {
     );
 
     let query_response = contract
-        .query_proposal_by_proposer(&app, proposer2)
+        .query_proposals_by_proposer(&app, proposer2)
         .unwrap();
     println!("{:?}", query_response);
 }
