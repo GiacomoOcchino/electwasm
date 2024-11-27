@@ -36,6 +36,7 @@ pub enum ExecuteMsg {
 pub struct VotesResponse {
     pub counts: Vec<u64>,
 }
+
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {

@@ -7,9 +7,9 @@ use cw_utils::Expiration;
 #[derive(Copy)]
 #[repr(u8)]
 pub enum ProposalStatus {
-    /// proposal was created, voting is started
+    // proposal was created, voting is started
     Open = 1,
-    /// proposal expired
+    // proposal expired
     Closed = 2,
 }
 #[cw_serde]
@@ -18,21 +18,21 @@ pub struct Votes {
 }
 
 impl Votes {
-    /// Initialize a new empty vote map
+    // Initialize a new empty vote map
     pub fn start(num_options: usize) -> Self {
         Votes {
             counts: vec![0; num_options], // Initialize all counters to zero
         }
     }
 
-    /// Adds a vote to the specified option
+    // Adds a vote to the specified option
     pub fn add_vote(&mut self, option_index: usize, weight: u64) {
         if let Some(count) = self.counts.get_mut(option_index) {
             *count += weight;
         }
     }
 
-    /// Returns the total of all votes
+    // Returns the total of all votes
     pub fn total(&self) -> u64 {
         self.counts.iter().sum()
     }

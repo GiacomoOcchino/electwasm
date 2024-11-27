@@ -49,7 +49,7 @@ pub fn execute(
             ask,
             rmv,
             proposal_id,
-        } => exec::execute_update_voters(deps, env, info, add, ask,rmv, proposal_id),
+        } => exec::execute_update_voters(deps, env, info, add, ask, rmv, proposal_id),
         Close { proposal_id } => exec::execute_close(deps, env, info, proposal_id),
     }
 }
@@ -60,7 +60,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::Running { proposal_id } => {
             to_json_binary(&query::query_proposal_running_response(deps, proposal_id)?)
         }
-        
+
         QueryMsg::Winner { proposal_id } => {
             to_json_binary(&query::query_proposal_result(deps, proposal_id)?)
         }
@@ -68,15 +68,17 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::Proposal { proposal_id } => {
             to_json_binary(&query::query_proposal(deps, env, proposal_id)?)
         }
+
         QueryMsg::ProposalsByProposer { proposer } => {
             to_json_binary(&query::query_proposals_by_proposer(deps, proposer)?)
         }
+
         QueryMsg::AllProposals {} => {
             to_json_binary(&query::query_all_proposal_ids_with_titles_and_status(deps)?)
         }
-        QueryMsg::Status {} => {
-            to_json_binary(&query::query_status(deps)?)
-        }
+
+        QueryMsg::Status {} => to_json_binary(&query::query_status(deps)?),
+        
         QueryMsg::Voters { proposal_id } => {
             to_json_binary(&query::query_voters(deps, env, proposal_id)?)
         }

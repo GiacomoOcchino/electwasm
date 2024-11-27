@@ -11,8 +11,10 @@ pub enum ContractError {
 
     #[error("Already voted on this proposal")]
     AlreadyVoted {},
+
     #[error("Invalid Option")]
     InvalidOption {},
+
     #[error("Cannot remove voter")]
     CannotRemoveVoter {},
 
@@ -24,19 +26,22 @@ pub enum ContractError {
 
     #[error("Quorum not reached")]
     QuorumNotReached {},
+
     #[error("No option provided")]
     NoOptionsProvided {},
 
     #[error("No vote")]
     NoVote {},
-    // #[error("Missing accept token")]
-    // MissingAcceptedToken {},
+
     #[error("Missing payment")]
     MissingPayment {},
+
     #[error("Proposal is NOT Expired")]
     NotExpired {},
+
     #[error("Coin NOT Supported")]
     UnsupportedToken {},
+    
     #[error("Invalid: Amount of token sent ({funds}) are lower than commission ({commission})")]
     InsufficientFunds { funds: Uint128, commission: Uint128 },
     // Add any other custom errors you like here.

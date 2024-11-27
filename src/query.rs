@@ -17,6 +17,7 @@ pub fn query_all_proposal_ids_with_titles_and_status(deps: Deps) -> StdResult<Al
     let response = AllProposalsInfoResponse { proposals };
     Ok(response)
 }
+
 pub fn query_proposals_by_proposer(
     deps: Deps,
     proposer: Addr,
@@ -76,7 +77,7 @@ pub fn query_proposal_running_response(deps: Deps, proposal_id: u64) -> StdResul
 }
 
 pub fn query_voters(deps: Deps, _env: Env, proposal_id: u64) -> StdResult<VotersResponse> {
-    // Filtra i votanti per la proposta specifica
+    // Filter voters for specific proposal
     let mut allowed_voters = Vec::new();
     let mut pending_voters = Vec::new();
     let mut has_voted_voters = Vec::new();
@@ -94,7 +95,6 @@ pub fn query_voters(deps: Deps, _env: Env, proposal_id: u64) -> StdResult<Voters
             }
         });
 
-    // Costruisce la risposta
     let response = VotersResponse {
         allowed_voters,
         pending_voters,

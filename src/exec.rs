@@ -24,10 +24,8 @@ pub fn execute_create_proposal(
     if option.is_empty() {
         return Err(ContractError::NoOptionsProvided {});
     }
-    /*
-    TODO: We need it?
+    /* if needed is possible to choose max options number
     const MAX_OPTIONS: usize = 10;
-
     if option.len() > MAX_OPTIONS {
         return Err(ContractError::TooManyOptions {});
     }*/
@@ -94,7 +92,7 @@ pub fn execute_create_proposal(
         proposer: info.sender.clone(),
         winner: None,
     };
-    prop.update_status(&env.block); //TODO Check
+    prop.update_status(&env.block);
     let id = next_id(deps.storage)?;
     PROPOSALS.save(deps.storage, id, &prop)?;
     resp = resp
@@ -181,7 +179,7 @@ pub fn update_voters(
         let insert_addr = deps.api.addr_validate(&to_ask)?;
         let status = VOTERS.may_load(deps.storage, (proposal_id, &insert_addr))?;
         if status.is_none() {
-            // Aggiungi alla lista di richieste solo se l'indirizzo non è presente
+            // Add to request list only if address is not present
             VOTERS.save(
                 deps.storage,
                 (proposal_id, &insert_addr),

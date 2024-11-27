@@ -244,7 +244,7 @@ fn create_proposal_works() {
 }
 
 #[test]
-fn create_multiple_proposal() {
+fn create_multiple_proposals() {
     /* Define Utilities */
     let app = App::default();
     let owner = app.api().addr_make("owner");
@@ -2377,7 +2377,7 @@ fn test_query_proposal_no_winner() {
 }
 
 #[test]
-fn query_multiple_proposal() {
+fn query_multiple_proposals() {
     let app = App::default();
     let owner = app.api().addr_make("owner");
     let proposer1 = app.api().addr_make("proposer1");
