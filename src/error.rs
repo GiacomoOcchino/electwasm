@@ -1,4 +1,4 @@
-use cosmwasm_std::StdError;
+use cosmwasm_std::{StdError, Uint128};
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
@@ -12,11 +12,38 @@ pub enum ContractError {
     #[error("Already voted on this proposal")]
     AlreadyVoted {},
 
+    #[error("Invalid Option")]
+    InvalidOption {},
+
+    #[error("Cannot remove voter")]
+    CannotRemoveVoter {},
+
+    #[error("Invalid Winner")]
+    InvalidWinner {},
+
     #[error("Proposal voting period has expired")]
     Expired {},
 
+    #[error("Quorum not reached")]
+    QuorumNotReached {},
+
+    #[error("No option provided")]
+    NoOptionsProvided {},
+
     #[error("No vote")]
     NoVote {},
+
+    #[error("Missing payment")]
+    MissingPayment {},
+
+    #[error("Proposal is NOT Expired")]
+    NotExpired {},
+
+    #[error("Coin NOT Supported")]
+    UnsupportedToken {},
+    
+    #[error("Invalid: Amount of token sent ({funds}) are lower than commission ({commission})")]
+    InsufficientFunds { funds: Uint128, commission: Uint128 },
     // Add any other custom errors you like here.
     // Look at https://docs.rs/thiserror/1.0.21/thiserror/ for details.
 }

@@ -1,6 +1,6 @@
 use cosmwasm_schema::write_api;
 
-use voting_system::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use electwasm::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
 fn main() {
     write_api! {
