@@ -272,28 +272,23 @@ pub fn execute_close(
     // Load proposal from storage
     let mut prop = PROPOSALS.load(deps.storage, proposal_id)?;
     prop.update_status(&env.block);
-
     // Only the proposer can close the proposal
     if prop.proposer != info.sender {
         return Err(ContractError::Unauthorized {});
     }
-
-    // Check if the offer has expired
+    // Check if the proposal has expired
     if prop.expires.is_expired(&env.block) {
         // Count the number of participants for the calculation of the quorum
         let participant_count = count_participants(deps.storage, proposal_id);
-
         // Define the quorum percentage (example: 60%)
         let quorum_percentage: f64 = 0.6;
         let quorum = (participant_count as f64 * quorum_percentage).ceil() as u64;
-
         // Calculate the total number of votes cast
         let total_votes = prop.votes.total();
 
         if total_votes >= quorum {
             // Number of votes for the option with the most votes
             let max_votes = prop.votes.counts.iter().cloned().max().unwrap_or(0);
-
             // Filter options that have the maximum number of votes
             let winners: Vec<usize> = prop
                 .votes
@@ -313,19 +308,15 @@ pub fn execute_close(
                     .collect();
 
                 let concatenated_tied_options = tied_options.join(", ");
-
                 // Update the proposal status with the tie
                 prop.status = ProposalStatus::Closed;
-                prop.winner = Some(concatenated_tied_options.clone()); // Imposta il vincitore come stringa di pareggio
+                prop.winner = Some(format!("Tie: {}", concatenated_tied_options));
                 PROPOSALS.save(deps.storage, proposal_id, &prop)?;
 
-                // Build the answer with the tied options
-                let response = Response::new()
+                return Ok(Response::new()
                     .add_attribute("action", "close_proposal")
                     .add_attribute("status", "closed")
-                    .add_attribute("winner", concatenated_tied_options);
-
-                return Ok(response);
+                    .add_attribute("winner", concatenated_tied_options));
             } else if let Some(&winner_index) = winners.first() {
                 // Check if the index is valid within the options array
                 if let Some(winner_text) = prop.option.get(winner_index) {
@@ -334,24 +325,33 @@ pub fn execute_close(
                     prop.winner = Some(winner_text.clone());
                     PROPOSALS.save(deps.storage, proposal_id, &prop)?;
 
-                    // Build the answer with the text of the winning option
-                    let response = Response::new()
+                    return Ok(Response::new()
                         .add_attribute("action", "close_proposal")
                         .add_attribute("status", "closed")
-                        .add_attribute("winner", winner_text);
-
-                    Ok(response)
+                        .add_attribute("winner", winner_text));
                 } else {
-                    Err(ContractError::InvalidWinner {})
+                    return Err(ContractError::InvalidWinner {});
                 }
             } else {
-                Err(ContractError::NoVote {})
+                prop.status = ProposalStatus::Closed;
+                prop.winner = Some("No valid votes".to_string());
+                PROPOSALS.save(deps.storage, proposal_id, &prop)?;
+                return Ok(Response::new()
+                        .add_attribute("action", "close_proposal")
+                        .add_attribute("status", "closed")
+                        .add_attribute("winner", "No valid votes"));
             }
         } else {
-            Err(ContractError::QuorumNotReached {})
+            prop.status = ProposalStatus::Closed;
+            prop.winner = Some("Quorum not reached".to_string());
+            PROPOSALS.save(deps.storage, proposal_id, &prop)?;
+            return Ok(Response::new()
+                        .add_attribute("action", "close_proposal")
+                        .add_attribute("status", "closed")
+                        .add_attribute("winner", "Quorum not reached"));
         }
     } else {
-        Err(ContractError::NotExpired {})
+        return Err(ContractError::NotExpired {});
     }
 }
 
