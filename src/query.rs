@@ -6,13 +6,18 @@ use crate::{
 };
 use cosmwasm_std::{Addr, Deps, Env, StdResult};
 
-pub fn query_all_proposal_ids_with_titles_and_status(deps: Deps) -> StdResult<AllProposalsInfoResponse> {
-    let proposals: Vec<(u64, String,ProposalStatus)> = PROPOSALS
+pub fn query_all_proposal_ids_with_titles_and_status(
+    deps: Deps,
+    env: Env,
+) -> StdResult<AllProposalsInfoResponse> {
+    let proposals: Vec<(u64, String, ProposalStatus)> = PROPOSALS
         .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
         .map(|item| {
-            item.map(|(id, proposal)| (id, proposal.title,proposal.status)) // Mappa ID e titolo
+            let (id, proposal) = item?;
+            let current_status = proposal.current_status(&env.block); // Calcola lo stato attuale
+            Ok((id, proposal.title, current_status))
         })
-        .collect::<StdResult<Vec<(u64, String,ProposalStatus)>>>()?;
+        .collect::<StdResult<Vec<(u64, String, ProposalStatus)>>>()?;
 
     let response = AllProposalsInfoResponse { proposals };
     Ok(response)
@@ -20,6 +25,7 @@ pub fn query_all_proposal_ids_with_titles_and_status(deps: Deps) -> StdResult<Al
 
 pub fn query_proposals_by_proposer(
     deps: Deps,
+    env: Env,
     proposer: Addr,
 ) -> StdResult<ProposalsByProposerResponse> {
     let mut proposals: Vec<ProposalsInfoByProposer> = Vec::new();
@@ -29,10 +35,11 @@ pub fn query_proposals_by_proposer(
         .for_each(|item| {
             if let Ok((id, proposal)) = item {
                 if proposal.proposer == proposer {
+                    let current_status = proposal.current_status(&env.block); // Calcola lo stato attuale
                     proposals.push(ProposalsInfoByProposer {
                         id,
                         title: proposal.title,
-                        status: proposal.status,
+                        status: current_status, // Usa lo stato aggiornato
                         winner: proposal.winner,
                     });
                 }
