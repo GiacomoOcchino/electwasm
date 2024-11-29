@@ -70,11 +70,11 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
 
         QueryMsg::ProposalsByProposer { proposer } => {
-            to_json_binary(&query::query_proposals_by_proposer(deps, proposer)?)
+            to_json_binary(&query::query_proposals_by_proposer(deps, env, proposer)?)
         }
 
         QueryMsg::AllProposals {} => {
-            to_json_binary(&query::query_all_proposal_ids_with_titles_and_status(deps)?)
+            to_json_binary(&query::query_all_proposal_ids_with_titles_and_status(deps,env)?)
         }
 
         QueryMsg::Status {} => to_json_binary(&query::query_status(deps)?),
