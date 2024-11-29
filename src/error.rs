@@ -24,14 +24,8 @@ pub enum ContractError {
     #[error("Proposal voting period has expired")]
     Expired {},
 
-    #[error("Quorum not reached")]
-    QuorumNotReached {},
-
     #[error("No option provided")]
     NoOptionsProvided {},
-
-    #[error("No vote")]
-    NoVote {},
 
     #[error("Missing payment")]
     MissingPayment {},
